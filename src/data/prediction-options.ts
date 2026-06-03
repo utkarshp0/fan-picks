@@ -1,0 +1,31 @@
+export const worldCupTeams = [
+  "Argentina",
+  "Brazil",
+  "England",
+  "France",
+  "Germany",
+  "Spain",
+  "Portugal",
+  "Netherlands",
+  "Italy",
+  "Uruguay",
+  "Belgium",
+  "Croatia",
+  "USA",
+  "Mexico",
+  "Japan",
+  "Morocco",
+];
+
+export const goldenBootPlayers = [
+  "Kylian Mbappe",
+  "Lionel Messi",
+  "Harry Kane",
+  "Vinicius Junior",
+  "Erling Haaland",
+  "Jude Bellingham",
+  "Lautaro Martinez",
+  "Cristiano Ronaldo",
+  "Jamal Musiala",
+  "Rafael Leao",
+];
