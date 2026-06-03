@@ -206,16 +206,19 @@ Big Balls Data is the selected football data provider.
 Current implementation:
 
 - `src/lib/big-balls-data.ts` calls Big Balls Data from the server and
-  normalizes provider matches.
+  normalizes provider matches. FIFA World Cup 2026 uses Big Balls'
+  `/v1/wc2026/matches` endpoint, which returns 72 matches and 48 teams as of
+  2026-06-03.
 - `src/app/api/sports/sync/route.ts` requires a logged-in Supabase Auth bearer
   token, then syncs configured leagues.
 - `src/lib/server-sports-data.ts` writes normalized data with the service role.
 - `src/app/api/sports/tournaments/route.ts` returns cached tournament snapshots.
 - `src/lib/sports-data-client.ts` fetches cached tournaments for React screens
   and enriches default templates with synced team choices.
-- `src/components/championship/championship-create-panel.tsx` has a
-  `Refresh sports data` button and uses cached tournament team choices when
-  available.
+- `src/components/championship/championship-create-panel.tsx` automatically
+  checks cached tournament data after login and runs sports sync in the
+  background when the selected tournament has no cached teams. There should not
+  be a normal user-facing `Refresh sports data` button.
 - `src/components/championship/prediction-board.tsx` also reads cached teams so
   existing pools can use synced choices if their stored bet does not already
   include choices.
@@ -229,8 +232,9 @@ Provider config:
 
 Important design rule: do not call Big Balls Data from client components or
 prediction forms. Always sync into Supabase first and let app features read
-from the cached sports tables. This protects quota and keeps existing pools
-stable if the provider response shape changes.
+from the cached sports tables. Sports sync should feel automatic to normal
+users, not like an admin/manual refresh step. This protects quota and keeps
+existing pools stable if the provider response shape changes.
 
 ## Supabase SQL
 
@@ -340,10 +344,12 @@ Quick Supabase Auth smoke test from Node can use the anon key and
   be surfaced more clearly to users in future work.
 - There are no automated end-to-end tests yet.
 - Lock/reopen currently has a manual test guide but no automated E2E coverage.
-- Big Balls Data live sync has a unit-tested normalizer but still needs manual
-  provider smoke testing after `sports-data-migration.sql` is run in Supabase.
+- Big Balls Data live sync has a unit-tested normalizer and has been manually
+  smoke-tested against `/v1/wc2026/matches` locally. Production still needs a
+  browser check after deploy.
 - API quota should be protected with scheduled/background sync later; the
-  current MVP uses a logged-in manual `Refresh sports data` action.
+  current MVP runs automatic sync from Create Pool only when cached teams are
+  missing.
 
 ## Recommended Next Work
 
@@ -367,6 +373,9 @@ Keep this short and newest-first. Record changes that affect future AI context.
 - 2026-06-03: Added Big Balls Data sports sync, Supabase `sports_*` cache
   tables, `/api/sports/sync`, `/api/sports/tournaments`, provider-backed team
   choices for Create Pool and Picks, and unit tests for sports normalization.
+- 2026-06-03: Switched FIFA World Cup sync to Big Balls `/v1/wc2026/matches`,
+  removed the normal user-facing refresh button, and made Create Pool
+  automatically sync missing tournament teams in the background.
 - 2026-06-03: Fixed bet removal persistence by adding the missing
   server-side `pool_bets` sync route, rolling back failed optimistic changes,
   and cleaning up the Add Bet choices layout.

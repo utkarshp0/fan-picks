@@ -67,7 +67,7 @@ If no handoff update is needed, note the reason in the final response.
    `BIG_BALLS_DATA_SYNC_LEAGUES` exist in the deployment environment.
 2. Run `supabase/sports-data-migration.sql` before using the sync button.
 3. Login and open `/championships/create`.
-4. Click `Refresh sports data`.
+4. Confirm the create form automatically syncs or reads cached tournament data.
 5. Confirm the create form shows synced team and fixture counts.
 6. Create a FIFA World Cup pool and confirm team-based bets use synced team
    choices.

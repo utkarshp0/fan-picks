@@ -50,9 +50,10 @@ display name in `profiles`, while Supabase Auth stores passwords and sessions.
 `SUPABASE_SERVICE_ROLE_KEY` is used only by the server signup route to create
 username/password users without email verification.
 
-Sports data is synced through `/api/sports/sync` after login. The route calls
-Big Balls Data from the server, writes normalized tournaments, teams, fixtures,
-and sync history to Supabase, and the browser reads only the cached data.
+Sports data is synced through `/api/sports/sync` after login when cached
+tournament data is missing. The route calls Big Balls Data from the server,
+writes normalized tournaments, teams, fixtures, and sync history to Supabase,
+and the browser reads only the cached data.
 
 Run the development server:
 
@@ -78,7 +79,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 4. Run `npm run lint` and `npm run build`.
 5. Run `npm test`.
 6. Sign up with a test account in one browser.
-7. Click `Refresh sports data` on Create Pool and confirm teams/fixtures sync.
+7. Open Create Pool and confirm tournament teams/fixtures sync automatically.
 8. Login with the same account in a second browser.
 9. Create a pool, copy its invite code, and join from the second browser.
 10. Save picks from both users and confirm the audit page shows both histories.
@@ -107,7 +108,7 @@ Complete:
 - Sidebar navigation with separate pages for Pools, Create Pool, Join Pool, and
   pool-specific Picks, Participants, Audit Log, and Bets pages
 - Pool creation for supported tournaments
-- Big Balls Data sync into Supabase for tournament teams and fixtures
+- Automatic Big Balls Data sync into Supabase for tournament teams and fixtures
 - Invite-code join flow
 - Creator-editable pool bets before lock
 - Prediction drafts, locks, reopen-before-deadline, fingerprints, and audit log

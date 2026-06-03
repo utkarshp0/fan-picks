@@ -79,8 +79,10 @@ let pool creators add custom bets.
 Sports data is not read directly from a third-party API in React. Big Balls
 Data is integrated as a server-side source and cached in Supabase:
 
-- `src/lib/big-balls-data.ts` calls `/v1/stored/matches` with the server-only
-  `BIG_BALLS_DATA_API_KEY`.
+- `src/lib/big-balls-data.ts` calls Big Balls Data with the server-only
+  `BIG_BALLS_DATA_API_KEY`. FIFA World Cup 2026 uses the dedicated
+  `/v1/wc2026/matches` endpoint; generic football leagues use match endpoints
+  as fallback.
 - `src/app/api/sports/sync/route.ts` validates a Supabase Auth session before
   spending API quota.
 - `src/lib/server-sports-data.ts` writes normalized rows to
@@ -91,10 +93,11 @@ Data is integrated as a server-side source and cached in Supabase:
 - `src/lib/sports-data-client.ts` enriches template defaults with synced team
   choices.
 
-Create Pool has a `Refresh sports data` action. Once data is synced, team-based
-default bets use the cached team list from Supabase instead of stale local
-arrays. Existing pools can also use cached team choices on the prediction page
-when their stored bet does not already include choices.
+Create Pool automatically checks cached tournament data. If the selected
+tournament is missing teams, the app syncs in the background after login. Once
+data is synced, team-based default bets use the cached team list from Supabase
+instead of stale local arrays. Existing pools can also use cached team choices
+on the prediction page when their stored bet does not already include choices.
 
 Pool creators can add or remove bets in a draft list on the Bets page before
 the lock date, as long as nobody has locked picks. Participants cannot edit

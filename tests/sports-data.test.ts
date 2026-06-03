@@ -45,6 +45,45 @@ describe("Big Balls Data sports sync", () => {
     );
   });
 
+  it("normalizes World Cup match fields from Big Balls wc2026 endpoint", () => {
+    const snapshot = normalizeBigBallsMatches(
+      {
+        tournamentId: "fifa-world-cup-2026",
+        league: "wc2026",
+      },
+      [
+        {
+          match_id: "match-1",
+          group: "A",
+          home_team: {
+            id: "mex",
+            name: "Mexico",
+            flag_url: "https://flagcdn.com/w80/mx.png",
+          },
+          away_team: {
+            id: "usa",
+            name: "United States",
+            flag_url: "https://flagcdn.com/w80/us.png",
+          },
+          scheduled_at: "2026-06-11T19:00:00Z",
+          status: "upcoming",
+        },
+      ],
+      "2026-06-03T10:00:00.000Z",
+    );
+
+    assert.equal(snapshot.fixtures[0].providerMatchId, "match-1");
+    assert.equal(snapshot.fixtures[0].kickoffUtc, "2026-06-11T19:00:00Z");
+    assert.deepEqual(
+      snapshot.teams.map((team) => team.name),
+      ["Mexico", "United States"],
+    );
+    assert.equal(
+      snapshot.teams.find((team) => team.name === "Mexico")?.logoUrl,
+      "https://flagcdn.com/w80/mx.png",
+    );
+  });
+
   it("injects synced team choices into team-based default bets", () => {
     const [template] = enrichTemplatesWithSportsData(
       [worldCup2026Template],

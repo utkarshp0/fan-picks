@@ -9,14 +9,18 @@ type BigBallsTeam = {
   short_name?: string;
   shortName?: string;
   abbreviation?: string;
+  flag_url?: string;
   logo_url?: string;
   logoUrl?: string;
 };
 
 type BigBallsMatch = {
   id?: string;
+  match_id?: string;
   sport?: string;
   league?: string;
+  group?: string;
+  venue?: string;
   home?: string | BigBallsTeam;
   away?: string | BigBallsTeam;
   home_team?: string | BigBallsTeam;
@@ -26,6 +30,7 @@ type BigBallsMatch = {
   kickoff_utc?: string;
   kickoffUtc?: string;
   start_time?: string;
+  scheduled_at?: string;
   status?: string;
   score?: { home?: number; away?: number } | null;
   scores?: { home?: number; away?: number; value?: { home?: number; away?: number } } | null;
@@ -75,6 +80,10 @@ export async function fetchBigBallsLeagueMatches(
 
   if (!apiKey) {
     throw new Error("Missing BIG_BALLS_DATA_API_KEY.");
+  }
+
+  if (config.tournamentId === "fifa-world-cup-2026") {
+    return fetchBigBallsWorldCupMatches(apiKey);
   }
 
   const leagues = [config.league, ...(config.fallbackLeagues ?? [])].filter(
@@ -144,6 +153,36 @@ async function fetchBigBallsStoredMatches(apiKey: string, league: string) {
   return [];
 }
 
+async function fetchBigBallsWorldCupMatches(apiKey: string) {
+  const baseUrl = process.env.BIG_BALLS_DATA_BASE_URL ?? defaultBaseUrl;
+  const url = new URL("/v1/wc2026/matches", baseUrl);
+
+  url.searchParams.set("limit", "250");
+
+  const response = await fetch(url, {
+    headers: {
+      "x-api-key": apiKey,
+      Authorization: `Bearer ${apiKey}`,
+    },
+    next: { revalidate: 0 },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    const detail = errorText ? ` ${errorText.slice(0, 240)}` : "";
+
+    throw new Error(
+      `Big Balls World Cup sync failed with ${response.status}.${detail}`,
+    );
+  }
+
+  const payload = (await response.json()) as {
+    data?: { matches?: BigBallsMatch[] };
+  };
+
+  return payload.data?.matches ?? [];
+}
+
 function getFallbackLeagues(tournamentId: string, league: string) {
   if (tournamentId !== "fifa-world-cup-2026") {
     return [];
@@ -167,7 +206,7 @@ export function normalizeBigBallsMatches(
   const fixtures = matches.flatMap((match) => {
     const home = normalizeTeam(match.home ?? match.home_team ?? match.homeTeam);
     const away = normalizeTeam(match.away ?? match.away_team ?? match.awayTeam);
-    const providerMatchId = String(match.id ?? "");
+    const providerMatchId = String(match.id ?? match.match_id ?? "");
 
     if (!providerMatchId || !home.name || !away.name) {
       return [];
@@ -190,7 +229,11 @@ export function normalizeBigBallsMatches(
         awayTeamName: awayTeam.name,
         homeTeamId: homeTeam.id,
         awayTeamId: awayTeam.id,
-        kickoffUtc: match.kickoff_utc ?? match.kickoffUtc ?? match.start_time,
+        kickoffUtc:
+          match.kickoff_utc ??
+          match.kickoffUtc ??
+          match.start_time ??
+          match.scheduled_at,
         status: match.status ?? "scheduled",
         homeScore: getScoreValue(match, "home"),
         awayScore: getScoreValue(match, "away"),
@@ -239,7 +282,7 @@ function normalizeTeam(value: string | BigBallsTeam | undefined) {
     id: value?.id ?? value?.short_name ?? value?.shortName ?? value?.name,
     name: value?.name ?? "",
     shortName: value?.short_name ?? value?.shortName ?? value?.abbreviation,
-    logoUrl: value?.logo_url ?? value?.logoUrl,
+    logoUrl: value?.logo_url ?? value?.logoUrl ?? value?.flag_url,
   };
 }
 

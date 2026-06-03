@@ -19,7 +19,7 @@ This roadmap is intentionally practical. It is not shown in the app UI.
 - Server-enforced lock/reopen behavior for accidental locks before deadline.
 - Reusable async button loading states for auth, pool, and pick actions.
 - Route-transition loading feedback for app navigation and pool tabs.
-- Big Balls Data server sync into Supabase `sports_*` cache tables.
+- Automatic Big Balls Data server sync into Supabase `sports_*` cache tables.
 - Provider-backed team choices on Create Pool and Picks.
 - Data-safety documentation.
 

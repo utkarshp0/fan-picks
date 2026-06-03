@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { CalendarClock, DatabaseZap, Plus, Trash2, Trophy } from "lucide-react";
+import { CalendarClock, Plus, Trash2, Trophy } from "lucide-react";
 
 import { useGuestSession } from "@/components/auth/guest-session-provider";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +47,7 @@ export function ChampionshipCreatePanel({
     SportsTournamentSnapshot[]
   >([]);
   const [isSyncingSports, setIsSyncingSports] = useState(false);
-  const [sportsMessage, setSportsMessage] = useState("");
+  const [sportsMessage, setSportsMessage] = useState("Checking tournament data...");
   const availableTemplates = useMemo(
     () => enrichTemplatesWithSportsData(championshipTemplates, sportsTournaments),
     [sportsTournaments],
@@ -68,22 +68,46 @@ export function ChampionshipCreatePanel({
   useEffect(() => {
     let isMounted = true;
 
-    fetchSportsTournaments()
-      .then((tournaments) => {
+    async function loadSportsData() {
+      try {
+        const tournaments = await fetchSportsTournaments();
+        const hasCurrentTournament = tournaments.some(
+          (item) => item.id === tournamentId && item.teamCount > 0,
+        );
+
         if (isMounted) {
           setSportsTournaments(tournaments);
         }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setSportsMessage("Sports data is using local defaults right now.");
+
+        if (!hasCurrentTournament) {
+          setIsSyncingSports(true);
+          await syncSportsTournaments();
+          const refreshedTournaments = await fetchSportsTournaments();
+
+          if (isMounted) {
+            setSportsTournaments(refreshedTournaments);
+            setSportsMessage("Tournament data synced.");
+          }
+        } else if (isMounted) {
+          setSportsMessage("Tournament data ready.");
         }
-      });
+      } catch {
+        if (isMounted) {
+          setSportsMessage("Using local defaults until tournament data is available.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsSyncingSports(false);
+        }
+      }
+    }
+
+    void loadSportsData();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [tournamentId]);
 
   function handleTournamentChange(nextTournamentId: string) {
     const nextTournament =
@@ -93,29 +117,6 @@ export function ChampionshipCreatePanel({
     setStartDate(nextTournament.startDate);
     setLockDate(nextTournament.lockDate);
     setSelectedBetIds(nextTournament.defaultBets.map((bet) => bet.id));
-  }
-
-  async function handleSportsSync() {
-    setIsSyncingSports(true);
-    setSportsMessage("");
-
-    try {
-      const result = await syncSportsTournaments();
-      const tournaments = await fetchSportsTournaments();
-      const totalMatches = result.tournaments.reduce(
-        (sum, item) => sum + item.matches,
-        0,
-      );
-
-      setSportsTournaments(tournaments);
-      setSportsMessage(`Sports data refreshed: ${totalMatches} match(es) synced.`);
-    } catch (error) {
-      setSportsMessage(
-        error instanceof Error ? error.message : "Sports data sync failed.",
-      );
-    } finally {
-      setIsSyncingSports(false);
-    }
   }
 
   function toggleBet(betId: string) {
@@ -231,34 +232,21 @@ export function ChampionshipCreatePanel({
           </select>
         </label>
 
-        <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-lg border border-border bg-surface-raised p-3">
           <div>
             <p className="text-sm font-medium text-foreground">
-              Sports data source
+              Tournament data
             </p>
             <p className="mt-1 text-sm leading-6 text-muted">
               {sportsTournament
                 ? `${sportsTournament.teamCount} team(s), ${sportsTournament.matchCount} fixture(s) from Big Balls Data.`
-                : "Using local defaults until sports data is synced."}
+                : sportsMessage}
             </p>
           </div>
-          <Button
-            loading={isSyncingSports}
-            loadingLabel="Refreshing"
-            onClick={handleSportsSync}
-            type="button"
-            variant="secondary"
-          >
-            <DatabaseZap aria-hidden className="h-4 w-4" />
-            Refresh sports data
-          </Button>
+          {isSyncingSports ? (
+            <p className="mt-2 text-xs text-accent">Syncing tournament data...</p>
+          ) : null}
         </div>
-
-        {sportsMessage ? (
-          <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">
-            {sportsMessage}
-          </p>
-        ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <DateSelectField
