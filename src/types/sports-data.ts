@@ -56,3 +56,16 @@ export type SportsSyncResult = {
     teams: number;
   }>;
 };
+
+export type LiveScoresSnapshot = {
+  tournamentId: string;
+  tournamentName: string;
+  source: "cache" | "big-balls-data" | "worldcup26";
+  lastSyncedAt?: string;
+  nextRefreshAt?: string;
+  stale: boolean;
+  live: SportsFixture[];
+  upcoming: SportsFixture[];
+  completed: SportsFixture[];
+  fixtures: SportsFixture[];
+};

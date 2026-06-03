@@ -21,6 +21,8 @@ This roadmap is intentionally practical. It is not shown in the app UI.
 - Route-transition loading feedback for app navigation and pool tabs.
 - Automatic Big Balls Data server sync into Supabase `sports_*` cache tables.
 - Provider-backed team choices on Create Pool and Picks.
+- Standalone Live Scores page with cache-first server refresh and optional
+  worldcup26 fallback URL.
 - Data-safety documentation.
 
 ## Next
@@ -33,6 +35,7 @@ This roadmap is intentionally practical. It is not shown in the app UI.
 - Add a safe test-data cleanup script.
 - Manually smoke test Big Balls Data sync after running
   `supabase/sports-data-migration.sql` in Supabase.
+- Add E2E coverage for the Live Scores page and `/api/live-scores`.
 - Review mobile layout for every page.
 
 ## Later

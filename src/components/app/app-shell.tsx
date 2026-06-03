@@ -7,6 +7,7 @@ import {
   LogOut,
   Plus,
   QrCode,
+  Radio,
   Trophy,
   UserCircle,
   Users,
@@ -35,6 +36,7 @@ export function AppShell({ children }: AppShellProps) {
   const activeChampionshipId = getChampionshipIdFromPath(pathname);
   const appNavItems = [
     { href: "/championships", icon: Trophy, label: "Pools" },
+    { href: "/live-scores", icon: Radio, label: "Live Scores" },
     { href: "/championships/create", icon: Plus, label: "Create Pool" },
     { href: "/championships/join", icon: QrCode, label: "Join Pool" },
   ];

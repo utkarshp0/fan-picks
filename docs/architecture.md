@@ -13,6 +13,7 @@ The main shell is `src/components/app/app-shell.tsx`.
   `/championships` so private pool URLs are not left in the address bar.
 - Top-level navigation:
   - Pools: `/championships`
+  - Live Scores: `/live-scores`
   - Create Pool: `/championships/create`
   - Join Pool: `/championships/join`
 - Pool-specific navigation appears only for `/championships/[id]/*` routes.
@@ -98,6 +99,35 @@ tournament is missing teams, the app syncs in the background after login. Once
 data is synced, team-based default bets use the cached team list from Supabase
 instead of stale local arrays. Existing pools can also use cached team choices
 on the prediction page when their stored bet does not already include choices.
+
+## Live Scores
+
+Live Scores is intentionally separate from prediction and pool logic.
+
+Core files:
+
+- `src/app/live-scores/page.tsx`
+- `src/components/live-scores/live-scores-page.tsx`
+- `src/app/api/live-scores/route.ts`
+- `src/lib/server-live-scores.ts`
+- `src/lib/worldcup26-fallback.ts`
+
+Behavior:
+
+- The browser reads `/api/live-scores`.
+- The server reads cached `sports_fixtures` first.
+- Cached data is considered fresh for about 10 minutes.
+- If cache is missing or stale, the server refreshes from Big Balls Data.
+- Big Balls remains the primary verified provider for World Cup 2026.
+- `worldcup26.ir` fallback is supported through optional `WORLDCUP26_API_URL`,
+  but it is not enabled by default because the public docs page did not expose a
+  stable JSON endpoint during implementation.
+- The UI polls the app server every 60 seconds. It never calls provider APIs
+  from the browser.
+
+The page currently displays live, upcoming, and completed fixtures. Match-based
+bets and kickoff-specific pick locks are future features and should stay
+separate until designed.
 
 Pool creators can add or remove bets in a draft list on the Bets page before
 the lock date, as long as nobody has locked picks. Participants cannot edit

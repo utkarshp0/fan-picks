@@ -76,6 +76,19 @@ If no handoff update is needed, note the reason in the final response.
 8. Confirm `/api/sports/sync` returns `401` when called without a logged-in
    Supabase session.
 
+## Live Scores
+
+1. Open `/live-scores` after login.
+2. Confirm the page shows FIFA World Cup 2026, fixture count, source, and
+   upcoming matches.
+3. Confirm `/api/live-scores` returns cached fixtures without exposing provider
+   keys.
+4. Confirm the page has no manual provider refresh button.
+5. Confirm match cards remain readable on mobile and desktop.
+6. If `WORLDCUP26_API_URL` is configured later, temporarily break Big Balls
+   credentials in a non-production environment and confirm fallback data is
+   normalized.
+
 ## Predictions
 
 See `docs/lock-testing-guide.md` for detailed lock/reopen testing.

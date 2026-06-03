@@ -32,6 +32,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 BIG_BALLS_DATA_API_KEY=
 BIG_BALLS_DATA_BASE_URL=https://api.bigballsdata.com
 BIG_BALLS_DATA_SYNC_LEAGUES=fifa-world-cup-2026:wc2026
+WORLDCUP26_API_URL=
 ```
 
 The service-role key and Big Balls Data key are server-only. Do not prefix them
@@ -54,6 +55,11 @@ Sports data is synced through `/api/sports/sync` after login when cached
 tournament data is missing. The route calls Big Balls Data from the server,
 writes normalized tournaments, teams, fixtures, and sync history to Supabase,
 and the browser reads only the cached data.
+
+Live scores use `/api/live-scores`. The server reads cached Supabase fixtures
+first, refreshes from Big Balls Data when stale, and can use `WORLDCUP26_API_URL`
+as an optional fallback feed if a stable worldcup26.ir JSON endpoint is
+provided.
 
 Run the development server:
 
@@ -109,6 +115,7 @@ Complete:
   pool-specific Picks, Participants, Audit Log, and Bets pages
 - Pool creation for supported tournaments
 - Automatic Big Balls Data sync into Supabase for tournament teams and fixtures
+- Standalone Live Scores page with cache-first server refresh
 - Invite-code join flow
 - Creator-editable pool bets before lock
 - Prediction drafts, locks, reopen-before-deadline, fingerprints, and audit log

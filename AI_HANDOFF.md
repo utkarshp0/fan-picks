@@ -51,6 +51,7 @@ Avoid adding casino, odds, money, payout, wager, or sportsbook language.
 - Left sidebar should remain.
 - Top-level pages are:
   - `/championships`
+  - `/live-scores`
   - `/championships/create`
   - `/championships/join`
 - Pool detail pages are:
@@ -97,6 +98,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 BIG_BALLS_DATA_API_KEY=
 BIG_BALLS_DATA_BASE_URL=https://api.bigballsdata.com
 BIG_BALLS_DATA_SYNC_LEAGUES=fifa-world-cup-2026:wc2026
+WORLDCUP26_API_URL=
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` and `BIG_BALLS_DATA_API_KEY` are server-only. Never
@@ -162,6 +164,7 @@ Relevant files:
 - `src/lib/championship-store.ts`
 - `src/lib/pool-supabase.ts`
 - `src/lib/server-prediction-locks.ts`
+- `src/lib/server-live-scores.ts`
 - `src/types/championship.ts`
 
 ## Prediction Lock Business Rule
@@ -235,6 +238,35 @@ prediction forms. Always sync into Supabase first and let app features read
 from the cached sports tables. Sports sync should feel automatic to normal
 users, not like an admin/manual refresh step. This protects quota and keeps
 existing pools stable if the provider response shape changes.
+
+## Live Scores
+
+Live Scores is a standalone display feature and should stay separate from
+pools/picks until match-based bets are designed.
+
+Current implementation:
+
+- Top-level route: `/live-scores`.
+- Server route: `/api/live-scores`.
+- UI: `src/components/live-scores/live-scores-page.tsx`.
+- Server service: `src/lib/server-live-scores.ts`.
+- Primary provider: Big Balls Data.
+- Optional fallback adapter: `src/lib/worldcup26-fallback.ts`.
+- The browser polls the app server every 60 seconds.
+- The server reads `sports_fixtures` from Supabase first.
+- Cached live-score data is treated as fresh for about 10 minutes.
+- If cache is missing or stale, the server refreshes from Big Balls Data.
+- If Big Balls fails and `WORLDCUP26_API_URL` is configured, the fallback
+  adapter tries that URL and normalizes a World Cup match feed.
+
+Important caveat: `worldcup26.ir` advertised a free API, but its public docs
+page did not expose a stable JSON endpoint during implementation and obvious
+`/api/*` routes returned 404. The fallback is implemented but disabled unless
+`WORLDCUP26_API_URL` is set to a verified endpoint.
+
+The Live Scores UI is inspired by the provided mobile score app screenshots:
+score-first hero card, date chips, rounded match cards, live/upcoming/completed
+sections, and no manual provider refresh button.
 
 ## Supabase SQL
 
@@ -345,8 +377,9 @@ Quick Supabase Auth smoke test from Node can use the anon key and
 - There are no automated end-to-end tests yet.
 - Lock/reopen currently has a manual test guide but no automated E2E coverage.
 - Big Balls Data live sync has a unit-tested normalizer and has been manually
-  smoke-tested against `/v1/wc2026/matches` locally. Production still needs a
-  browser check after deploy.
+  smoke-tested against `/v1/wc2026/matches` locally. The local
+  `/api/live-scores` route returned 72 fixtures, 12 upcoming, 0 live, and
+  source `big-balls-data` on 2026-06-03.
 - API quota should be protected with scheduled/background sync later; the
   current MVP runs automatic sync from Create Pool only when cached teams are
   missing.
@@ -368,6 +401,9 @@ Quick Supabase Auth smoke test from Node can use the anon key and
 
 Keep this short and newest-first. Record changes that affect future AI context.
 
+- 2026-06-03: Added standalone Live Scores page, `/api/live-scores`,
+  cache-first server live-score service, Big Balls primary refresh, optional
+  `worldcup26.ir` fallback adapter via `WORLDCUP26_API_URL`, and sidebar nav.
 - 2026-06-03: Fixed logout URL cleanup so private pool URLs are replaced with
   `/championships`, and added a lightweight Node test for the rule.
 - 2026-06-03: Added Big Balls Data sports sync, Supabase `sports_*` cache
