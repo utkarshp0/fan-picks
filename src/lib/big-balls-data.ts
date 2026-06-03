@@ -34,6 +34,7 @@ type BigBallsMatch = {
 export type SportsLeagueSyncConfig = {
   tournamentId: string;
   league: string;
+  fallbackLeagues?: string[];
   name?: string;
   season?: string;
 };
@@ -59,6 +60,7 @@ export function getSportsLeagueSyncConfig() {
       return {
         tournamentId,
         league,
+        fallbackLeagues: getFallbackLeagues(tournamentId, league),
         name,
         season,
       };
@@ -75,11 +77,39 @@ export async function fetchBigBallsLeagueMatches(
     throw new Error("Missing BIG_BALLS_DATA_API_KEY.");
   }
 
+  const leagues = [config.league, ...(config.fallbackLeagues ?? [])].filter(
+    (league, index, values) => league && values.indexOf(league) === index,
+  );
+  const errors: string[] = [];
+  let lastSuccessfulMatches: BigBallsMatch[] | null = null;
+
+  for (const league of leagues) {
+    try {
+      const matches = await fetchBigBallsStoredMatches(apiKey, league);
+
+      lastSuccessfulMatches = matches;
+
+      if (matches.length > 0) {
+        return matches;
+      }
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  if (lastSuccessfulMatches) {
+    return lastSuccessfulMatches;
+  }
+
+  throw new Error(errors.at(-1) ?? "Big Balls Data sync failed.");
+}
+
+async function fetchBigBallsStoredMatches(apiKey: string, league: string) {
   const baseUrl = process.env.BIG_BALLS_DATA_BASE_URL ?? defaultBaseUrl;
   const url = new URL("/v1/stored/matches", baseUrl);
 
   url.searchParams.set("sport", "football");
-  url.searchParams.set("league", config.league);
+  url.searchParams.set("league", league);
   url.searchParams.set("limit", "250");
 
   const response = await fetch(url, {
@@ -91,12 +121,41 @@ export async function fetchBigBallsLeagueMatches(
   });
 
   if (!response.ok) {
-    throw new Error(`Big Balls Data sync failed with ${response.status}.`);
+    const errorText = await response.text().catch(() => "");
+    const detail = errorText ? ` ${errorText.slice(0, 240)}` : "";
+
+    throw new Error(
+      `Big Balls Data sync failed with ${response.status}.${detail}`,
+    );
   }
 
-  const payload = (await response.json()) as { data?: BigBallsMatch[] };
+  const payload = (await response.json()) as {
+    data?: BigBallsMatch[] | Record<string, BigBallsMatch>;
+  };
 
-  return Array.isArray(payload.data) ? payload.data : [];
+  if (Array.isArray(payload.data)) {
+    return payload.data;
+  }
+
+  if (payload.data && typeof payload.data === "object") {
+    return Object.values(payload.data);
+  }
+
+  return [];
+}
+
+function getFallbackLeagues(tournamentId: string, league: string) {
+  if (tournamentId !== "fifa-world-cup-2026") {
+    return [];
+  }
+
+  return [
+    "fifa-world-cup-2026",
+    "world-cup-2026",
+    "fifa-world-cup",
+    "world-cup",
+    "wc2026",
+  ].filter((candidate) => candidate !== league);
 }
 
 export function normalizeBigBallsMatches(
