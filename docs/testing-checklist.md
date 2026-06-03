@@ -84,8 +84,14 @@ If no handoff update is needed, note the reason in the final response.
 3. Confirm `/api/live-scores` returns cached fixtures without exposing provider
    keys.
 4. Confirm the page has no manual provider refresh button.
-5. Confirm match cards remain readable on mobile and desktop.
-6. If `WORLDCUP26_API_URL` is configured later, temporarily break Big Balls
+5. Confirm `/api/live-scores` returns the full World Cup fixture set rather
+   than only the first 12 matches.
+6. Click different date chips and confirm the visible match cards change to
+   that date.
+7. Click multiple match cards and confirm the Match Details panel updates with
+   the selected teams, kickoff, group, venue, and status.
+8. Confirm match cards remain readable on mobile and desktop.
+9. If `WORLDCUP26_API_URL` is configured later, temporarily break Big Balls
    credentials in a non-production environment and confirm fallback data is
    normalized.
 

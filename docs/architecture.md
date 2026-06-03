@@ -127,7 +127,10 @@ Behavior:
 
 The page currently displays live, upcoming, and completed fixtures. Match-based
 bets and kickoff-specific pick locks are future features and should stay
-separate until designed.
+separate until designed. The live-score API returns the full cached fixture set
+for the tournament; the page handles date filtering on the client with date
+chips, keeps an all-fixtures section available, and updates an inline Match
+Details panel when a fixture is selected.
 
 Pool creators can add or remove bets in a draft list on the Bets page before
 the lock date, as long as nobody has locked picks. Participants cannot edit

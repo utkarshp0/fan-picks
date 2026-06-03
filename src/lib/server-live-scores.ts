@@ -130,8 +130,8 @@ function buildLiveScoresSnapshot(
       : undefined,
     stale,
     live: sortedFixtures.filter(isLiveFixture),
-    upcoming: sortedFixtures.filter(isUpcomingFixture).slice(0, 12),
-    completed: sortedFixtures.filter(isCompletedFixture).slice(-12).reverse(),
+    upcoming: sortedFixtures.filter(isUpcomingFixture),
+    completed: sortedFixtures.filter(isCompletedFixture).reverse(),
     fixtures: sortedFixtures,
   };
 }

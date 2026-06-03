@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
   Clock3,
+  MapPin,
   Radio,
   Shield,
   Sparkles,
+  Timer,
   Trophy,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -21,6 +23,8 @@ export function LiveScoresPage() {
   const [snapshot, setSnapshot] = useState<LiveScoresSnapshot | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedFixtureId, setSelectedFixtureId] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -38,6 +42,12 @@ export function LiveScoresPage() {
         if (isMounted) {
           setSnapshot(nextSnapshot);
           setMessage("");
+          setSelectedDate((currentDate) =>
+            currentDate || getFirstFixtureDate(nextSnapshot.fixtures),
+          );
+          setSelectedFixtureId((currentId) =>
+            currentId || nextSnapshot.live[0]?.id || nextSnapshot.upcoming[0]?.id || "",
+          );
         }
       } catch (error) {
         if (isMounted) {
@@ -64,10 +74,21 @@ export function LiveScoresPage() {
   }, []);
 
   const featuredMatch =
-    snapshot?.live[0] ?? snapshot?.upcoming[0] ?? snapshot?.completed[0] ?? null;
+    snapshot?.fixtures.find((fixture) => fixture.id === selectedFixtureId) ??
+    snapshot?.live[0] ??
+    snapshot?.upcoming[0] ??
+    snapshot?.completed[0] ??
+    null;
   const dateChips = useMemo(
     () => getDateChips(snapshot?.fixtures ?? []),
     [snapshot?.fixtures],
+  );
+  const selectedDateFixtures = useMemo(
+    () =>
+      (snapshot?.fixtures ?? []).filter(
+        (fixture) => getDateKey(fixture.kickoffUtc) === selectedDate,
+      ),
+    [selectedDate, snapshot?.fixtures],
   );
 
   return (
@@ -96,17 +117,34 @@ export function LiveScoresPage() {
 
               <div className="mt-5 grid grid-cols-7 gap-2">
                 {dateChips.map((chip) => (
-                  <div
-                    className="grid min-h-16 place-items-center rounded-full border border-white/10 bg-background/45 px-2 text-center"
+                  <button
+                    className={`grid min-h-16 place-items-center rounded-full border px-2 text-center transition-colors ${
+                      selectedDate === chip.key
+                        ? "border-accent bg-accent text-accent-foreground"
+                        : "border-white/10 bg-background/45 text-foreground hover:border-accent/60"
+                    }`}
                     key={chip.key}
+                    onClick={() => setSelectedDate(chip.key)}
+                    type="button"
                   >
-                    <span className="text-[10px] uppercase text-muted">
+                    <span
+                      className={`text-[10px] uppercase ${
+                        selectedDate === chip.key ? "text-accent-foreground/80" : "text-muted"
+                      }`}
+                    >
                       {chip.dayName}
                     </span>
-                    <span className="text-sm font-semibold text-foreground">
+                    <span className="text-sm font-semibold">
                       {chip.day}
                     </span>
-                  </div>
+                    <span
+                      className={`text-[10px] ${
+                        selectedDate === chip.key ? "text-accent-foreground/75" : "text-muted"
+                      }`}
+                    >
+                      {chip.count}
+                    </span>
+                  </button>
                 ))}
               </div>
 
@@ -150,46 +188,48 @@ export function LiveScoresPage() {
         <div className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
           <section className="grid gap-4 rounded-lg border border-border bg-surface p-4">
             <SectionTitle
-              count={snapshot?.live.length ?? 0}
-              title="Live match"
+              count={selectedDateFixtures.length}
+              title={formatSelectedDate(selectedDate)}
             />
-            {snapshot?.live.length ? (
+            {selectedDateFixtures.length ? (
               <div className="grid gap-3">
-                {snapshot.live.map((fixture) => (
-                  <CompactMatchCard fixture={fixture} key={fixture.id} />
+                {selectedDateFixtures.map((fixture) => (
+                  <CompactMatchCard
+                    fixture={fixture}
+                    isSelected={fixture.id === selectedFixtureId}
+                    key={fixture.id}
+                    onSelect={() => setSelectedFixtureId(fixture.id)}
+                  />
                 ))}
               </div>
             ) : (
-              <EmptyState text="No matches are live right now." />
+              <EmptyState text="No matches are scheduled for this date." />
             )}
           </section>
 
           <section className="grid gap-4 rounded-lg border border-border bg-surface p-4">
-            <SectionTitle
-              count={snapshot?.completed.length ?? 0}
-              title="Completed"
-            />
-            {snapshot?.completed.length ? (
-              <div className="grid gap-3">
-                {snapshot.completed.slice(0, 6).map((fixture) => (
-                  <CompactMatchCard fixture={fixture} key={fixture.id} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState text="Completed results will appear here." />
-            )}
+            <SectionTitle count={featuredMatch ? 1 : 0} title="Match details" />
+            {featuredMatch ? <MatchDetailCard fixture={featuredMatch} /> : <EmptyState text="Select a match to see details." />}
           </section>
         </div>
 
         <section className="grid gap-4 rounded-lg border border-border bg-surface p-4">
           <SectionTitle
-            count={snapshot?.upcoming.length ?? 0}
-            title="Upcoming"
+            count={snapshot?.fixtures.length ?? 0}
+            title="All tournament fixtures"
           />
-          <div className="grid gap-3 md:grid-cols-2">
-            {snapshot?.upcoming.length ? (
-              snapshot.upcoming.map((fixture) => (
-                <UpcomingCard fixture={fixture} key={fixture.id} />
+          <div className="grid gap-3 lg:grid-cols-3">
+            {snapshot?.fixtures.length ? (
+              snapshot.fixtures.map((fixture) => (
+                <UpcomingCard
+                  fixture={fixture}
+                  isSelected={fixture.id === selectedFixtureId}
+                  key={fixture.id}
+                  onSelect={() => {
+                    setSelectedFixtureId(fixture.id);
+                    setSelectedDate(getDateKey(fixture.kickoffUtc));
+                  }}
+                />
               ))
             ) : (
               <EmptyState text="Upcoming fixtures will appear after tournament data syncs." />
@@ -234,9 +274,23 @@ function HeroScoreCard({ fixture }: { fixture: SportsFixture }) {
   );
 }
 
-function CompactMatchCard({ fixture }: { fixture: SportsFixture }) {
+function CompactMatchCard({
+  fixture,
+  isSelected = false,
+  onSelect,
+}: {
+  fixture: SportsFixture;
+  isSelected?: boolean;
+  onSelect?: () => void;
+}) {
   return (
-    <article className="rounded-lg border border-border bg-surface-raised p-4">
+    <button
+      className={`rounded-lg border bg-surface-raised p-4 text-left transition-colors ${
+        isSelected ? "border-accent" : "border-border hover:border-accent/50"
+      }`}
+      onClick={onSelect}
+      type="button"
+    >
       <div className="flex items-center justify-between gap-3">
         <TeamLine fixture={fixture} side="home" />
         <ScorePill fixture={fixture} compact />
@@ -246,13 +300,27 @@ function CompactMatchCard({ fixture }: { fixture: SportsFixture }) {
         <span>{formatKickoff(fixture.kickoffUtc)}</span>
         <span>{formatStatus(fixture)}</span>
       </div>
-    </article>
+    </button>
   );
 }
 
-function UpcomingCard({ fixture }: { fixture: SportsFixture }) {
+function UpcomingCard({
+  fixture,
+  isSelected = false,
+  onSelect,
+}: {
+  fixture: SportsFixture;
+  isSelected?: boolean;
+  onSelect?: () => void;
+}) {
   return (
-    <article className="rounded-lg border border-border bg-surface-raised p-4">
+    <button
+      className={`rounded-lg border bg-surface-raised p-4 text-left transition-colors ${
+        isSelected ? "border-accent" : "border-border hover:border-accent/50"
+      }`}
+      onClick={onSelect}
+      type="button"
+    >
       <p className="text-xs text-muted">{formatKickoff(fixture.kickoffUtc)}</p>
       <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <TeamLine fixture={fixture} side="home" />
@@ -261,7 +329,73 @@ function UpcomingCard({ fixture }: { fixture: SportsFixture }) {
         </div>
         <TeamLine fixture={fixture} side="away" align="right" />
       </div>
-    </article>
+    </button>
+  );
+}
+
+function MatchDetailCard({ fixture }: { fixture: SportsFixture }) {
+  const raw = fixture.raw as {
+    group?: string;
+    venue?: string;
+    matchday?: string | number | null;
+  };
+  const details = [
+    { icon: Clock3, label: "Kickoff", value: formatKickoff(fixture.kickoffUtc) },
+    { icon: Trophy, label: "Group", value: raw.group ? `Group ${raw.group}` : "TBD" },
+    { icon: MapPin, label: "Venue", value: raw.venue ?? "Venue TBD" },
+    { icon: Timer, label: "Status", value: formatStatus(fixture) },
+  ];
+
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-[28px] border border-border bg-[linear-gradient(180deg,rgba(219,238,247,0.12),rgba(255,255,255,0.03))] p-4">
+        <div className="mx-auto mb-4 flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-black">
+          <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+          {formatStatus(fixture)}
+        </div>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <TeamBlock logoUrl={getTeamLogo(fixture, "home")} name={fixture.homeTeamName} />
+          <ScorePill fixture={fixture} />
+          <TeamBlock logoUrl={getTeamLogo(fixture, "away")} name={fixture.awayTeamName} />
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {details.map((detail) => (
+          <div
+            className="rounded-lg border border-border bg-background p-3"
+            key={detail.label}
+          >
+            <div className="flex items-center gap-2 text-xs text-muted">
+              <detail.icon aria-hidden className="h-4 w-4 text-accent" />
+              {detail.label}
+            </div>
+            <p className="mt-2 text-sm font-semibold text-foreground">
+              {detail.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-lg border border-border bg-background p-3">
+        <div className="grid grid-cols-3 rounded-full bg-surface p-1 text-center text-xs text-muted">
+          <span className="rounded-full bg-accent px-3 py-2 font-semibold text-accent-foreground">
+            Summary
+          </span>
+          <span className="px-3 py-2">Statistics</span>
+          <span className="px-3 py-2">Timeline</span>
+        </div>
+        <div className="mt-3 grid gap-2 text-sm text-muted">
+          <p>
+            {fixture.homeTeamName} vs {fixture.awayTeamName}
+          </p>
+          <p>
+            Match statistics and timeline events will populate here when the live
+            provider includes them.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -461,24 +595,52 @@ function formatSource(source?: LiveScoresSnapshot["source"]) {
   return "Cache";
 }
 
-function getDateChips(fixtures: SportsFixture[]) {
-  const upcomingDates = fixtures
-    .map((fixture) => fixture.kickoffUtc)
-    .filter(Boolean)
-    .slice(0, 7) as string[];
-  const dates = upcomingDates.length
-    ? upcomingDates
-    : Array.from({ length: 7 }, (_, index) => {
-        const date = new Date();
-        date.setDate(date.getDate() + index);
-        return date.toISOString();
-      });
+function getFirstFixtureDate(fixtures: SportsFixture[]) {
+  return getDateKey(fixtures.find((fixture) => fixture.kickoffUtc)?.kickoffUtc);
+}
 
-  return dates.map((value) => {
-    const date = new Date(value);
+function getDateKey(value?: string) {
+  if (!value) {
+    return "";
+  }
+
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+function formatSelectedDate(value: string) {
+  if (!value) {
+    return "Selected date";
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "full",
+  }).format(new Date(`${value}T00:00:00Z`));
+}
+
+function getDateChips(fixtures: SportsFixture[]) {
+  const countsByDate = new Map<string, number>();
+
+  for (const fixture of fixtures) {
+    const key = getDateKey(fixture.kickoffUtc);
+
+    if (key) {
+      countsByDate.set(key, (countsByDate.get(key) ?? 0) + 1);
+    }
+  }
+
+  const dates = Array.from(countsByDate.keys()).sort();
+  const fallbackDates = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
+
+  return (dates.length ? dates : fallbackDates).map((value) => {
+    const date = new Date(`${value}T00:00:00Z`);
 
     return {
       key: value,
+      count: countsByDate.get(value) ?? 0,
       day: new Intl.DateTimeFormat("en", { day: "2-digit" }).format(date),
       dayName: new Intl.DateTimeFormat("en", { weekday: "short" }).format(date),
     };
