@@ -56,9 +56,13 @@ export async function createChampionship(
 ) {
   const now = new Date().toISOString();
   const tournament = getChampionshipTemplate(input.tournamentId);
-  const name = input.name.trim() || `${tournament.name} Pool`;
+  const tournamentName = input.tournamentName?.trim() || tournament.name;
+  const name = input.name.trim() || `${tournamentName} Pool`;
   const inviteCode = createInviteCode();
-  const selectedDefaultBets = tournament.defaultBets.filter((bet) =>
+  const availableDefaultBets = input.defaultBets?.length
+    ? input.defaultBets
+    : tournament.defaultBets;
+  const selectedDefaultBets = availableDefaultBets.filter((bet) =>
     input.defaultBetIds.includes(bet.id),
   );
   const customBets = input.customBets
@@ -104,7 +108,7 @@ export async function createChampionship(
     auditLog: [
       createAuditEvent("pool_created", creator.displayName, now, {
         label: "Pool created",
-        details: `${creator.displayName} created ${name} for ${tournament.name}.`,
+        details: `${creator.displayName} created ${name} for ${tournamentName}.`,
       }),
       createAuditEvent("invite_created", creator.displayName, now, {
         label: "Invite code created",

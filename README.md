@@ -10,6 +10,7 @@ stack is intentionally simple and free to operate:
 - TailwindCSS
 - shadcn-style UI utilities
 - Supabase-ready client foundation
+- Big Balls Data sports-data sync, cached in Supabase
 - Vercel-ready deployment target
 
 ## Product Guardrails
@@ -28,22 +29,30 @@ Create `.env.local` when Supabase is configured:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+BIG_BALLS_DATA_API_KEY=
+BIG_BALLS_DATA_BASE_URL=https://api.bigballsdata.com
+BIG_BALLS_DATA_SYNC_LEAGUES=fifa-world-cup-2026:wc2026
 ```
 
-The service-role key is server-only. Do not prefix it with `NEXT_PUBLIC_`, and
-do not paste it into client code.
+The service-role key and Big Balls Data key are server-only. Do not prefix them
+with `NEXT_PUBLIC_`, and do not paste them into client code.
 
 Run these SQL files in Supabase before using the app with real users:
 
 ```bash
 supabase/schema.sql
 supabase/pool-bets-migration.sql
+supabase/sports-data-migration.sql
 ```
 
 Production login and signup use Supabase Auth. The app keeps the username and
 display name in `profiles`, while Supabase Auth stores passwords and sessions.
 `SUPABASE_SERVICE_ROLE_KEY` is used only by the server signup route to create
 username/password users without email verification.
+
+Sports data is synced through `/api/sports/sync` after login. The route calls
+Big Balls Data from the server, writes normalized tournaments, teams, fixtures,
+and sync history to Supabase, and the browser reads only the cached data.
 
 Run the development server:
 
@@ -58,6 +67,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `npm run dev` starts the local app.
 - `npm run build` creates a production build.
 - `npm run lint` runs ESLint.
+- `npm test` runs Node tests.
 
 ## Production Checklist
 
@@ -66,10 +76,12 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
    `SUPABASE_SERVICE_ROLE_KEY` to the hosting provider.
 3. Confirm Supabase Auth email/password provider is enabled.
 4. Run `npm run lint` and `npm run build`.
-5. Sign up with a test account in one browser.
-6. Login with the same account in a second browser.
-7. Create a pool, copy its invite code, and join from the second browser.
-8. Save picks from both users and confirm the audit page shows both histories.
+5. Run `npm test`.
+6. Sign up with a test account in one browser.
+7. Click `Refresh sports data` on Create Pool and confirm teams/fixtures sync.
+8. Login with the same account in a second browser.
+9. Create a pool, copy its invite code, and join from the second browser.
+10. Save picks from both users and confirm the audit page shows both histories.
 
 See `docs/production-data-safety.md` for the data retention, backup, and
 pre-launch verification checklist.
@@ -87,70 +99,19 @@ Dark-first, mobile-first, premium sports platform inspired by OneFootball,
 Apple Wallet, and Linear. Avoid casino aesthetics, neon clutter, and gambling
 language.
 
-## Phase 1 Status
+## Current App
 
 Complete:
 
-- App shell with desktop rail and mobile bottom navigation
-- Responsive dashboard foundation
-- Reusable UI primitives
-- Seeded FIFA World Cup 2026 template data
-- Loading and error states
-- PWA manifest and app icon
-
-## Phase 2 Status
-
-Complete:
-
-- Anonymous guest session created automatically in the browser
-- Editable local guest profile
-- No email, OTP, password, or account recovery flow
-- Designed to migrate later to Supabase anonymous auth when keys are connected
-
-## Phase 3 Status
-
-Complete:
-
-- Local championship creation from the FIFA World Cup 2026 template
-- Automatic invite code and slug generation
-- Creator added as first participant from the anonymous profile
-- Championship detail view with Overview, Rules, Participants, Predictions,
-  Audit Log, and Results tabs
-- Local audit events for championship creation, creator join, rules generation,
-  and invite creation
-
-## Phase 4 Status
-
-Complete:
-
-- Invite card with championship URL, invite code, and copy action
-- Join-by-code form for anonymous guests
-- Rules acceptance gate before joining
-- Typed-name digital signature capture
-- Participant statuses for role, signed, submission, and lock state
-- Audit events for participant joins, rules acceptance, and signatures
-
-## Phase 5 Status
-
-Complete:
-
-- Prediction draft form for all seeded World Cup 2026 categories
-- Version history created on every draft save
-- Final prediction lock with immutable post-lock UI
-- SHA256 fingerprint generation for locked picks
-- Audit events for draft saves and locked predictions
-- Hidden-before-lock participant prediction display
-
-## Phase 6 Status
-
-Complete:
-
-- Filterable public audit timeline
-- Transparency dashboard inside the championship page
-- Integrity score derived from actual local championship state
-- Prediction version history for every participant
-- Fingerprint verification surface for locked submissions
-- Public last-edited visibility per participant
+- Username/password signup and login backed by Supabase Auth
+- Sidebar navigation with separate pages for Pools, Create Pool, Join Pool, and
+  pool-specific Picks, Participants, Audit Log, and Bets pages
+- Pool creation for supported tournaments
+- Big Balls Data sync into Supabase for tournament teams and fixtures
+- Invite-code join flow
+- Creator-editable pool bets before lock
+- Prediction drafts, locks, reopen-before-deadline, fingerprints, and audit log
+- Loading states for async actions and route transitions
 
 ## Deploy on Vercel
 

@@ -19,6 +19,8 @@ This roadmap is intentionally practical. It is not shown in the app UI.
 - Server-enforced lock/reopen behavior for accidental locks before deadline.
 - Reusable async button loading states for auth, pool, and pick actions.
 - Route-transition loading feedback for app navigation and pool tabs.
+- Big Balls Data server sync into Supabase `sports_*` cache tables.
+- Provider-backed team choices on Create Pool and Picks.
 - Data-safety documentation.
 
 ## Next
@@ -29,12 +31,15 @@ This roadmap is intentionally practical. It is not shown in the app UI.
 - Add user-facing remote sync error states.
 - Add deployment instructions for Vercel.
 - Add a safe test-data cleanup script.
+- Manually smoke test Big Balls Data sync after running
+  `supabase/sports-data-migration.sql` in Supabase.
 - Review mobile layout for every page.
 
 ## Later
 
 - Admin or creator-only controls for editing pool metadata before first join.
 - Better custom bet builder.
+- Match-based bets backed by synced fixtures and kickoff-specific locks.
 - Scoring/results after tournaments finish.
 - Public read-only share pages after lock.
 - Optional social login if username/password becomes a barrier.

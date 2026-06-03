@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   EyeOff,
   Fingerprint,
@@ -20,6 +20,7 @@ import {
   savePredictionDraft,
   unlockPrediction,
 } from "@/lib/championship-store";
+import { fetchSportsTournaments } from "@/lib/sports-data-client";
 import type {
   Championship,
   PredictionCategory,
@@ -36,6 +37,7 @@ export function PredictionBoard({ championship }: PredictionBoardProps) {
   const [pendingAction, setPendingAction] = useState<
     "save" | "lock" | "unlock" | null
   >(null);
+  const [sportsTeamOptions, setSportsTeamOptions] = useState<string[]>([]);
   const participant = profile
     ? championship.participants.find(
         (item) => item.profileId === profile.id && !item.leftAt,
@@ -49,8 +51,38 @@ export function PredictionBoard({ championship }: PredictionBoardProps) {
   const lockDatePassed = isPastLockDate(championship.lockDate);
   const isLocked = Boolean(submission?.lockedAt) || lockDatePassed;
   const canReopen = Boolean(submission?.lockedAt) && !lockDatePassed;
+  const teamOptions = useMemo(
+    () => sportsTeamOptions.length > 0 ? sportsTeamOptions : worldCupTeams,
+    [sportsTeamOptions],
+  );
 
-function collectPicks(form: HTMLFormElement) {
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchSportsTournaments()
+      .then((tournaments) => {
+        const tournament = tournaments.find(
+          (item) => item.id === championship.tournamentId,
+        );
+
+        if (isMounted) {
+          setSportsTeamOptions(
+            tournament?.teams.map((team) => team.name).filter(Boolean) ?? [],
+          );
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSportsTeamOptions([]);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [championship.tournamentId]);
+
+  function collectPicks(form: HTMLFormElement) {
     const formData = new FormData(form);
 
     return Object.fromEntries(
@@ -205,6 +237,7 @@ function collectPicks(form: HTMLFormElement) {
                     <BetInput
                       bet={bet}
                       defaultValues={latestPicks[bet.id] ?? []}
+                      teamOptions={teamOptions}
                     />
                   </div>
                 </div>
@@ -286,9 +319,11 @@ function collectPicks(form: HTMLFormElement) {
 function BetInput({
   bet,
   defaultValues,
+  teamOptions,
 }: {
   bet: PredictionCategory;
   defaultValues: string[];
+  teamOptions: string[];
 }) {
   if (bet.type === "multi-team") {
     return (
@@ -297,7 +332,7 @@ function BetInput({
         key={`${bet.id}:${defaultValues.join("|")}`}
         maxSelections={bet.selectionCount}
         name={bet.id}
-        options={bet.choices?.length ? bet.choices : worldCupTeams}
+        options={bet.choices?.length ? bet.choices : teamOptions}
       />
     );
   }
@@ -310,7 +345,7 @@ function BetInput({
         name={bet.id}
       >
         <option value="">Select</option>
-        {(bet.choices?.length ? bet.choices : worldCupTeams).map((option) => (
+        {(bet.choices?.length ? bet.choices : teamOptions).map((option) => (
           <option key={option} value={option}>
             {option}
           </option>

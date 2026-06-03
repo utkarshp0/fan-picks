@@ -76,6 +76,26 @@ Tournament/bet defaults live in `src/data/templates.ts`.
 The current product intent is to offer a small number of major tournaments and
 let pool creators add custom bets.
 
+Sports data is not read directly from a third-party API in React. Big Balls
+Data is integrated as a server-side source and cached in Supabase:
+
+- `src/lib/big-balls-data.ts` calls `/v1/stored/matches` with the server-only
+  `BIG_BALLS_DATA_API_KEY`.
+- `src/app/api/sports/sync/route.ts` validates a Supabase Auth session before
+  spending API quota.
+- `src/lib/server-sports-data.ts` writes normalized rows to
+  `sports_tournaments`, `sports_teams`, `sports_fixtures`, and
+  `sports_sync_runs`.
+- `src/app/api/sports/tournaments/route.ts` returns cached tournament snapshots
+  to the browser.
+- `src/lib/sports-data-client.ts` enriches template defaults with synced team
+  choices.
+
+Create Pool has a `Refresh sports data` action. Once data is synced, team-based
+default bets use the cached team list from Supabase instead of stale local
+arrays. Existing pools can also use cached team choices on the prediction page
+when their stored bet does not already include choices.
+
 Pool creators can add or remove bets in a draft list on the Bets page before
 the lock date, as long as nobody has locked picks. Participants cannot edit
 bets. Removed tournament defaults appear in a Default Bets add-back section.

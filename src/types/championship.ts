@@ -107,9 +107,11 @@ export type Championship = {
 export type CreateChampionshipInput = {
   name: string;
   tournamentId: string;
+  tournamentName?: string;
   startDate: string;
   lockDate: string;
   defaultBetIds: string[];
+  defaultBets?: PredictionCategory[];
   customBets: Array<Pick<PredictionCategory, "name" | "prompt" | "type" | "selectionCount" | "choices">>;
 };
 

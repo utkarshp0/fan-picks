@@ -94,11 +94,14 @@ Required `.env.local` variables:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+BIG_BALLS_DATA_API_KEY=
+BIG_BALLS_DATA_BASE_URL=https://api.bigballsdata.com
+BIG_BALLS_DATA_SYNC_LEAGUES=fifa-world-cup-2026:wc2026
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` is server-only. Never expose it in browser code,
-logs, docs, screenshots, or commits. It was pasted during development; rotate it
-in Supabase before production launch.
+`SUPABASE_SERVICE_ROLE_KEY` and `BIG_BALLS_DATA_API_KEY` are server-only. Never
+expose them in browser code, logs, docs, screenshots, or commits. Both were
+pasted during development; rotate them before production launch.
 
 ## Auth Decision
 
@@ -151,6 +154,8 @@ Important current behavior:
   prediction versions, locks, and fingerprints are persisted to Supabase.
 - Prediction lock/unlock is enforced by server routes, not direct browser
   updates, so the authenticated user and lock date can be validated centrally.
+- Sports data from Big Balls Data is also cached in Supabase. The browser reads
+  cached `sports_*` rows and never calls the provider directly.
 
 Relevant files:
 
@@ -194,12 +199,46 @@ Relevant files:
   service role after validating the Supabase Auth user is the pool creator.
 - If server sync fails, the app rolls back the optimistic local change.
 
+## Sports Data Integration
+
+Big Balls Data is the selected football data provider.
+
+Current implementation:
+
+- `src/lib/big-balls-data.ts` calls Big Balls Data from the server and
+  normalizes provider matches.
+- `src/app/api/sports/sync/route.ts` requires a logged-in Supabase Auth bearer
+  token, then syncs configured leagues.
+- `src/lib/server-sports-data.ts` writes normalized data with the service role.
+- `src/app/api/sports/tournaments/route.ts` returns cached tournament snapshots.
+- `src/lib/sports-data-client.ts` fetches cached tournaments for React screens
+  and enriches default templates with synced team choices.
+- `src/components/championship/championship-create-panel.tsx` has a
+  `Refresh sports data` button and uses cached tournament team choices when
+  available.
+- `src/components/championship/prediction-board.tsx` also reads cached teams so
+  existing pools can use synced choices if their stored bet does not already
+  include choices.
+
+Provider config:
+
+- `BIG_BALLS_DATA_BASE_URL` defaults to `https://api.bigballsdata.com`.
+- `BIG_BALLS_DATA_SYNC_LEAGUES` is comma-separated:
+  `tournamentId:providerLeague:name:season`.
+- Current default is `fifa-world-cup-2026:wc2026`.
+
+Important design rule: do not call Big Balls Data from client components or
+prediction forms. Always sync into Supabase first and let app features read
+from the cached sports tables. This protects quota and keeps existing pools
+stable if the provider response shape changes.
+
 ## Supabase SQL
 
 Run these for a clean deployment:
 
 - `supabase/schema.sql`
 - `supabase/pool-bets-migration.sql`
+- `supabase/sports-data-migration.sql`
 
 `pool-bets-migration.sql` includes a delete policy, but bet add/remove no
 longer depends on browser-side delete permission because the app uses the
@@ -221,6 +260,10 @@ base new auth work on `app_accounts`.
 - `prediction_versions`
 - `audit_events`
 - `pool_bets`
+- `sports_tournaments`
+- `sports_teams`
+- `sports_fixtures`
+- `sports_sync_runs`
 - Supabase Auth internal user tables
 
 Important relationships:
@@ -297,6 +340,10 @@ Quick Supabase Auth smoke test from Node can use the anon key and
   be surfaced more clearly to users in future work.
 - There are no automated end-to-end tests yet.
 - Lock/reopen currently has a manual test guide but no automated E2E coverage.
+- Big Balls Data live sync has a unit-tested normalizer but still needs manual
+  provider smoke testing after `sports-data-migration.sql` is run in Supabase.
+- API quota should be protected with scheduled/background sync later; the
+  current MVP uses a logged-in manual `Refresh sports data` action.
 
 ## Recommended Next Work
 
@@ -308,6 +355,8 @@ Quick Supabase Auth smoke test from Node can use the anon key and
 4. Add a small admin/testing script to clean test users/profiles safely.
 5. Deploy to Vercel with rotated service role key.
 6. Enable Supabase backups/PITR and test a restore.
+7. Run the sports data migration and verify Big Balls Data sync with the
+   production API key.
 
 ## Change Log
 
@@ -315,6 +364,9 @@ Keep this short and newest-first. Record changes that affect future AI context.
 
 - 2026-06-03: Fixed logout URL cleanup so private pool URLs are replaced with
   `/championships`, and added a lightweight Node test for the rule.
+- 2026-06-03: Added Big Balls Data sports sync, Supabase `sports_*` cache
+  tables, `/api/sports/sync`, `/api/sports/tournaments`, provider-backed team
+  choices for Create Pool and Picks, and unit tests for sports normalization.
 - 2026-06-03: Fixed bet removal persistence by adding the missing
   server-side `pool_bets` sync route, rolling back failed optimistic changes,
   and cleaning up the Add Bet choices layout.

@@ -61,6 +61,21 @@ If no handoff update is needed, note the reason in the final response.
 17. Refresh after removing a bet and confirm it does not come back from
     Supabase.
 
+## Sports Data
+
+1. Confirm `BIG_BALLS_DATA_API_KEY`, `BIG_BALLS_DATA_BASE_URL`, and
+   `BIG_BALLS_DATA_SYNC_LEAGUES` exist in the deployment environment.
+2. Run `supabase/sports-data-migration.sql` before using the sync button.
+3. Login and open `/championships/create`.
+4. Click `Refresh sports data`.
+5. Confirm the create form shows synced team and fixture counts.
+6. Create a FIFA World Cup pool and confirm team-based bets use synced team
+   choices.
+7. Open an existing pool's Picks page and confirm team bets use synced teams
+   when the stored bet does not already have choices.
+8. Confirm `/api/sports/sync` returns `401` when called without a logged-in
+   Supabase session.
+
 ## Predictions
 
 See `docs/lock-testing-guide.md` for detailed lock/reopen testing.

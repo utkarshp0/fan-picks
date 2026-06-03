@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { CalendarClock, Plus, Trash2, Trophy } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { CalendarClock, DatabaseZap, Plus, Trash2, Trophy } from "lucide-react";
 
 import { useGuestSession } from "@/components/auth/guest-session-provider";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,13 @@ import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { championshipTemplates, getChampionshipTemplate } from "@/data/templates";
 import { createChampionship } from "@/lib/championship-store";
+import {
+  enrichTemplatesWithSportsData,
+  fetchSportsTournaments,
+  syncSportsTournaments,
+} from "@/lib/sports-data-client";
 import type { BetType, Championship } from "@/types/championship";
+import type { SportsTournamentSnapshot } from "@/types/sports-data";
 
 type ChampionshipCreatePanelProps = {
   onCreated?: (championship: Championship) => void;
@@ -37,7 +43,21 @@ export function ChampionshipCreatePanel({
   const [customBets, setCustomBets] = useState<CustomBetDraft[]>([]);
   const [createdName, setCreatedName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const tournament = getChampionshipTemplate(tournamentId);
+  const [sportsTournaments, setSportsTournaments] = useState<
+    SportsTournamentSnapshot[]
+  >([]);
+  const [isSyncingSports, setIsSyncingSports] = useState(false);
+  const [sportsMessage, setSportsMessage] = useState("");
+  const availableTemplates = useMemo(
+    () => enrichTemplatesWithSportsData(championshipTemplates, sportsTournaments),
+    [sportsTournaments],
+  );
+  const tournament =
+    availableTemplates.find((template) => template.id === tournamentId) ??
+    getChampionshipTemplate(tournamentId);
+  const sportsTournament = sportsTournaments.find(
+    (item) => item.id === tournament.id,
+  );
   const defaultName = `${tournament.name} Friends Pool`;
 
   const allDefaultBetIds = useMemo(
@@ -45,12 +65,57 @@ export function ChampionshipCreatePanel({
     [tournament.defaultBets],
   );
 
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchSportsTournaments()
+      .then((tournaments) => {
+        if (isMounted) {
+          setSportsTournaments(tournaments);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSportsMessage("Sports data is using local defaults right now.");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   function handleTournamentChange(nextTournamentId: string) {
-    const nextTournament = getChampionshipTemplate(nextTournamentId);
+    const nextTournament =
+      availableTemplates.find((template) => template.id === nextTournamentId) ??
+      getChampionshipTemplate(nextTournamentId);
     setTournamentId(nextTournamentId);
     setStartDate(nextTournament.startDate);
     setLockDate(nextTournament.lockDate);
     setSelectedBetIds(nextTournament.defaultBets.map((bet) => bet.id));
+  }
+
+  async function handleSportsSync() {
+    setIsSyncingSports(true);
+    setSportsMessage("");
+
+    try {
+      const result = await syncSportsTournaments();
+      const tournaments = await fetchSportsTournaments();
+      const totalMatches = result.tournaments.reduce(
+        (sum, item) => sum + item.matches,
+        0,
+      );
+
+      setSportsTournaments(tournaments);
+      setSportsMessage(`Sports data refreshed: ${totalMatches} match(es) synced.`);
+    } catch (error) {
+      setSportsMessage(
+        error instanceof Error ? error.message : "Sports data sync failed.",
+      );
+    } finally {
+      setIsSyncingSports(false);
+    }
   }
 
   function toggleBet(betId: string) {
@@ -102,6 +167,8 @@ export function ChampionshipCreatePanel({
           startDate: String(formData.get("startDate") ?? ""),
           lockDate: String(formData.get("lockDate") ?? ""),
           defaultBetIds: selectedBetIds,
+          defaultBets: tournament.defaultBets,
+          tournamentName: tournament.name,
           customBets: customBets.map((bet) => ({
             name: bet.name,
             prompt: bet.prompt,
@@ -156,13 +223,42 @@ export function ChampionshipCreatePanel({
             onChange={(event) => handleTournamentChange(event.target.value)}
             value={tournamentId}
           >
-            {championshipTemplates.map((template) => (
+            {availableTemplates.map((template) => (
               <option key={template.id} value={template.id}>
                 {template.name}
               </option>
             ))}
           </select>
         </label>
+
+        <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Sports data source
+            </p>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              {sportsTournament
+                ? `${sportsTournament.teamCount} team(s), ${sportsTournament.matchCount} fixture(s) from Big Balls Data.`
+                : "Using local defaults until sports data is synced."}
+            </p>
+          </div>
+          <Button
+            loading={isSyncingSports}
+            loadingLabel="Refreshing"
+            onClick={handleSportsSync}
+            type="button"
+            variant="secondary"
+          >
+            <DatabaseZap aria-hidden className="h-4 w-4" />
+            Refresh sports data
+          </Button>
+        </div>
+
+        {sportsMessage ? (
+          <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">
+            {sportsMessage}
+          </p>
+        ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <DateSelectField
