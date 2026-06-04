@@ -7,7 +7,6 @@ import {
   MapPin,
   Radio,
   Shield,
-  Sparkles,
   Timer,
   Trophy,
 } from "lucide-react";
@@ -159,7 +158,7 @@ export function LiveScoresPage() {
               )}
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-4 lg:grid-rows-2">
               <ScoreStatCard
                 icon={Trophy}
                 label="Fixtures"
@@ -169,11 +168,6 @@ export function LiveScoresPage() {
                 icon={Shield}
                 label="Upcoming"
                 value={String(snapshot?.upcoming.length ?? 0)}
-              />
-              <ScoreStatCard
-                icon={Sparkles}
-                label="Source"
-                value={formatSource(snapshot?.source)}
               />
             </div>
           </div>
@@ -238,8 +232,7 @@ export function LiveScoresPage() {
         </section>
 
         <p className="text-xs text-muted">
-          Scores update from the server cache. During live matches the app checks
-          for fresh data automatically.
+          Scores update automatically during live matches.
         </p>
       </div>
     </AppShell>
@@ -256,7 +249,7 @@ function HeroScoreCard({ fixture }: { fixture: SportsFixture }) {
         <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
         {formatStatus(fixture)}
       </div>
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
         <TeamBlock logoUrl={homeLogo} name={fixture.homeTeamName} />
         <ScorePill fixture={fixture} />
         <TeamBlock logoUrl={awayLogo} name={fixture.awayTeamName} />
@@ -291,7 +284,7 @@ function CompactMatchCard({
       onClick={onSelect}
       type="button"
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
         <TeamLine fixture={fixture} side="home" />
         <ScorePill fixture={fixture} compact />
         <TeamLine fixture={fixture} side="away" align="right" />
@@ -321,13 +314,14 @@ function UpcomingCard({
       onClick={onSelect}
       type="button"
     >
-      <p className="text-xs text-muted">{formatKickoff(fixture.kickoffUtc)}</p>
-      <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
         <TeamLine fixture={fixture} side="home" />
-        <div className="rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-muted">
-          vs
-        </div>
+        <ScorePill fixture={fixture} compact />
         <TeamLine fixture={fixture} side="away" align="right" />
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
+        <span>{formatKickoff(fixture.kickoffUtc)}</span>
+        <span>{formatStatus(fixture)}</span>
       </div>
     </button>
   );
@@ -353,7 +347,7 @@ function MatchDetailCard({ fixture }: { fixture: SportsFixture }) {
           <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
           {formatStatus(fixture)}
         </div>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
           <TeamBlock logoUrl={getTeamLogo(fixture, "home")} name={fixture.homeTeamName} />
           <ScorePill fixture={fixture} />
           <TeamBlock logoUrl={getTeamLogo(fixture, "away")} name={fixture.awayTeamName} />
@@ -424,12 +418,12 @@ function TeamLine({
 
   return (
     <div
-      className={`flex min-w-0 items-center gap-2 ${
+      className={`flex min-w-0 items-center gap-2 overflow-hidden ${
         align === "right" ? "justify-end text-right" : ""
       }`}
     >
       {align === "right" ? null : <TeamLogo logoUrl={logoUrl} name={name} />}
-      <span className="truncate text-sm font-semibold text-foreground">
+      <span className="min-w-0 truncate text-sm font-semibold text-foreground">
         {name}
       </span>
       {align === "right" ? <TeamLogo logoUrl={logoUrl} name={name} /> : null}
@@ -448,8 +442,8 @@ function TeamLogo({
 }) {
   const className =
     size === "lg"
-      ? "h-14 w-14 rounded-full border border-white/20 bg-white object-cover p-1"
-      : "h-9 w-9 rounded-full border border-border bg-white object-cover p-1";
+      ? "h-14 w-14 shrink-0 rounded-full border border-white/20 bg-white object-cover p-1"
+      : "h-9 w-9 shrink-0 rounded-full border border-border bg-white object-cover p-1";
 
   if (logoUrl) {
     return (
@@ -486,12 +480,14 @@ function ScorePill({
   return (
     <div
       className={`rounded-xl border border-white/15 bg-white px-4 py-2 text-center font-semibold text-black shadow-lg shadow-black/10 ${
-        compact ? "min-w-16 text-base" : "min-w-28 text-2xl"
+        compact ? "w-24 text-base" : "min-w-28 text-2xl"
       }`}
     >
-      {hasScore
-        ? `${fixture.homeScore ?? 0} - ${fixture.awayScore ?? 0}`
-        : formatShortTime(fixture.kickoffUtc)}
+      <span className="block whitespace-nowrap">
+        {hasScore
+          ? `${fixture.homeScore ?? 0} - ${fixture.awayScore ?? 0}`
+          : formatShortTime(fixture.kickoffUtc)}
+      </span>
     </div>
   );
 }
@@ -583,18 +579,6 @@ function formatShortTime(value?: string) {
   }).format(new Date(value));
 }
 
-function formatSource(source?: LiveScoresSnapshot["source"]) {
-  if (source === "big-balls-data") {
-    return "Big Balls";
-  }
-
-  if (source === "worldcup26") {
-    return "Fallback";
-  }
-
-  return "Cache";
-}
-
 function getFirstFixtureDate(fixtures: SportsFixture[]) {
   return getDateKey(fixtures.find((fixture) => fixture.kickoffUtc)?.kickoffUtc);
 }
@@ -604,7 +588,12 @@ function getDateKey(value?: string) {
     return "";
   }
 
-  return new Date(value).toISOString().slice(0, 10);
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function formatSelectedDate(value: string) {
@@ -614,7 +603,7 @@ function formatSelectedDate(value: string) {
 
   return new Intl.DateTimeFormat("en", {
     dateStyle: "full",
-  }).format(new Date(`${value}T00:00:00Z`));
+  }).format(new Date(`${value}T00:00:00`));
 }
 
 function getDateChips(fixtures: SportsFixture[]) {
@@ -636,7 +625,7 @@ function getDateChips(fixtures: SportsFixture[]) {
   });
 
   return (dates.length ? dates : fallbackDates).map((value) => {
-    const date = new Date(`${value}T00:00:00Z`);
+    const date = new Date(`${value}T00:00:00`);
 
     return {
       key: value,

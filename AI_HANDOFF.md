@@ -266,10 +266,12 @@ page did not expose a stable JSON endpoint during implementation and obvious
 
 The Live Scores UI is inspired by the provided mobile score app screenshots:
 score-first hero card, date chips, rounded match cards, live/upcoming/completed
-sections, and no manual provider refresh button. The API should return the full
-cached fixture set for the selected tournament, not a small preview cap. The UI
-filters by selected date on the client, shows a full tournament fixture list,
-and updates an inline Match Details panel when a match card is selected.
+sections, and no manual provider refresh button. Do not show provider/source or
+cache metadata in the product UI; that belongs in logs/debugging only. The API
+should return the full cached fixture set for the selected tournament, not a
+small preview cap. The UI filters by selected local date on the client, shows a
+full tournament fixture list, and updates an inline Match Details panel when a
+match card is selected.
 
 ## Supabase SQL
 
@@ -417,6 +419,9 @@ Keep this short and newest-first. Record changes that affect future AI context.
 - 2026-06-04: Added `supabase/rls-recursion-fix.sql` and updated
   `rls-migration.sql` to replace recursive participant membership policies with
   `SECURITY DEFINER` helper functions.
+- 2026-06-04: Removed Live Scores source/cache metadata from the UI and
+  tightened match-card layout so mobile score pills and long team names do not
+  collide.
 - 2026-06-03: Added standalone Live Scores page, `/api/live-scores`,
   cache-first server live-score service, Big Balls primary refresh, optional
   `worldcup26.ir` fallback adapter via `WORLDCUP26_API_URL`, and sidebar nav.
