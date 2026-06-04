@@ -24,6 +24,10 @@ storage is only a cache for the current session.
 - Keep `SUPABASE_SERVICE_ROLE_KEY` server-only and rotate it if it is exposed.
 - Never run destructive SQL in production without a fresh backup or restore
   point.
+- If the browser console or Network tab shows
+  `infinite recursion detected in policy for relation "participants"`, run
+  `supabase/rls-recursion-fix.sql` in the Supabase SQL Editor. It only replaces
+  RLS policies/functions and does not delete user or pool data.
 
 ## Pre-Launch Verification
 
@@ -35,3 +39,5 @@ storage is only a cache for the current session.
 6. Refresh both browsers and confirm picks remain.
 7. Lock picks and confirm fingerprints remain after refresh.
 8. Confirm Audit Log shows create, join, field changes, saves, and locks.
+9. Open a pool's Picks, Participants, Audit Log, and Bets/Rules pages and
+   confirm the Network tab has no Supabase `42P17` policy recursion errors.

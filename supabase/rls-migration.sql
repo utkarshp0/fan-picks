@@ -99,6 +99,51 @@ create policy "championships: users can create as themselves"
   with check (created_by = auth.uid());
 
 -- ============================================================
+-- RLS helper functions
+-- ============================================================
+
+-- SECURITY DEFINER avoids recursive participants policies when checking
+-- whether the current user belongs to a pool. Do not replace these policies
+-- with direct subqueries against public.participants from inside a
+-- participants policy.
+create or replace function public.is_championship_member(check_championship_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.participants p
+    where p.championship_id = check_championship_id
+      and p.profile_id = auth.uid()
+  );
+$$;
+
+create or replace function public.is_submission_in_member_pool(check_submission_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.prediction_submissions ps
+    join public.participants p
+      on p.championship_id = ps.championship_id
+    where ps.id = check_submission_id
+      and p.profile_id = auth.uid()
+  );
+$$;
+
+revoke all on function public.is_championship_member(uuid) from public;
+revoke all on function public.is_submission_in_member_pool(uuid) from public;
+grant execute on function public.is_championship_member(uuid) to authenticated, service_role;
+grant execute on function public.is_submission_in_member_pool(uuid) to authenticated, service_role;
+
+-- ============================================================
 -- participants
 -- ============================================================
 
@@ -108,11 +153,8 @@ create policy "participants: readable by pool members"
   for select
   to authenticated
   using (
-    championship_id in (
-      select championship_id
-      from   public.participants
-      where  profile_id = auth.uid()
-    )
+    profile_id = auth.uid()
+    or public.is_championship_member(championship_id)
   );
 
 -- Users can insert their own participant row.
@@ -140,13 +182,7 @@ create policy "prediction submissions: readable by pool participants"
   on public.prediction_submissions
   for select
   to authenticated
-  using (
-    championship_id in (
-      select championship_id
-      from   public.participants
-      where  profile_id = auth.uid()
-    )
-  );
+  using (public.is_championship_member(championship_id));
 
 -- Users can insert their own submission.
 create policy "prediction submissions: users can insert own"
@@ -173,15 +209,7 @@ create policy "prediction versions: readable by pool participants"
   on public.prediction_versions
   for select
   to authenticated
-  using (
-    submission_id in (
-      select ps.id
-      from   public.prediction_submissions ps
-      join   public.participants p
-             on p.championship_id = ps.championship_id
-      where  p.profile_id = auth.uid()
-    )
-  );
+  using (public.is_submission_in_member_pool(submission_id));
 
 -- Users can insert versions only for their own unlocked submission.
 create policy "prediction versions: users can insert own"
@@ -206,13 +234,7 @@ create policy "audit events: readable by pool participants"
   on public.audit_events
   for select
   to authenticated
-  using (
-    championship_id in (
-      select championship_id
-      from   public.participants
-      where  profile_id = auth.uid()
-    )
-  );
+  using (public.is_championship_member(championship_id));
 
 -- Any participant can write audit events for pools they are part of.
 -- ignoreDuplicates is used in the app so duplicate inserts are harmless.
@@ -220,13 +242,7 @@ create policy "audit events: insertable by pool participants"
   on public.audit_events
   for insert
   to authenticated
-  with check (
-    championship_id in (
-      select championship_id
-      from   public.participants
-      where  profile_id = auth.uid()
-    )
-  );
+  with check (public.is_championship_member(championship_id));
 
 -- ============================================================
 -- pool_bets
@@ -237,13 +253,7 @@ create policy "pool bets: readable by pool participants"
   on public.pool_bets
   for select
   to authenticated
-  using (
-    championship_id in (
-      select championship_id
-      from   public.participants
-      where  profile_id = auth.uid()
-    )
-  );
+  using (public.is_championship_member(championship_id));
 
 -- The browser client inserts initial bets during pool creation (createSupabasePool).
 -- At that point the championship row already exists with created_by = auth.uid().

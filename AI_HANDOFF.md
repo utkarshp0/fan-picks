@@ -1,6 +1,6 @@
 # Fan Picks AI Handoff
 
-Last updated: 2026-06-03.
+Last updated: 2026-06-04.
 
 This file is the first thing a future AI assistant should read before changing
 Fan Picks. It captures the product intent, current architecture, data model,
@@ -278,6 +278,15 @@ Run these for a clean deployment:
 - `supabase/schema.sql`
 - `supabase/pool-bets-migration.sql`
 - `supabase/sports-data-migration.sql`
+- `supabase/rls-migration.sql`
+
+If production shows `infinite recursion detected in policy for relation
+"participants"`, run:
+
+- `supabase/rls-recursion-fix.sql`
+
+That hotfix only replaces RLS helper functions/policies. It does not delete app
+data.
 
 `pool-bets-migration.sql` includes a delete policy, but bet add/remove no
 longer depends on browser-side delete permission because the app uses the
@@ -371,8 +380,9 @@ Quick Supabase Auth smoke test from Node can use the anon key and
 
 ## Current Known Risks
 
-- RLS policies are broad from MVP development. Before public production, review
-  row-level security with real Supabase Auth user IDs.
+- RLS policies now use `SECURITY DEFINER` helper functions for pool membership
+  checks. Do not reintroduce direct `public.participants` subqueries inside the
+  `participants` SELECT policy, or Supabase can raise infinite recursion.
 - Service role key was pasted during development. Rotate it before launch.
 - Supabase backups/PITR should be enabled before inviting real users.
 - The UI still uses local cache for responsiveness; remote sync failure should
@@ -404,6 +414,9 @@ Quick Supabase Auth smoke test from Node can use the anon key and
 
 Keep this short and newest-first. Record changes that affect future AI context.
 
+- 2026-06-04: Added `supabase/rls-recursion-fix.sql` and updated
+  `rls-migration.sql` to replace recursive participant membership policies with
+  `SECURITY DEFINER` helper functions.
 - 2026-06-03: Added standalone Live Scores page, `/api/live-scores`,
   cache-first server live-score service, Big Balls primary refresh, optional
   `worldcup26.ir` fallback adapter via `WORLDCUP26_API_URL`, and sidebar nav.
