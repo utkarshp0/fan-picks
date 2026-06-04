@@ -53,6 +53,12 @@ export async function joinMatchPickRoom(inviteCode: string) {
   });
 }
 
+export async function leaveMatchPickRoom(roomId: string) {
+  return authedRequest<Record<string, never>>(`/api/match-picks/${roomId}/leave`, {
+    method: "POST",
+  });
+}
+
 export async function saveMatchPickAnswer(roomId: string, answer: MatchPickAnswer) {
   return authedRequest<{ room: MatchPickRoom }>(`/api/match-picks/${roomId}/save`, {
     body: JSON.stringify({ answer }),

@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clipboard,
   Clock3,
+  LogOut,
   ListChecks,
   Lock,
   Plus,
@@ -28,9 +29,11 @@ import {
   fetchMatchPickRoom,
   fetchMatchPickRooms,
   joinMatchPickRoom,
+  leaveMatchPickRoom,
   saveMatchPickAnswer,
   scoreMatchPickRoom,
 } from "@/lib/match-picks-client";
+import { canLeaveMatchPickRoom } from "@/lib/match-pick-rules";
 import { cn } from "@/lib/utils";
 import type {
   MatchPickAnswer,
@@ -60,8 +63,10 @@ const pickTypes: Array<{ description: string; label: string; value: MatchPickTyp
 ];
 
 export function MatchPicksListPage() {
+  const { profile } = useGuestSession();
   const [rooms, setRooms] = useState<MatchPickRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [leavingRoomId, setLeavingRoomId] = useState("");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -93,6 +98,22 @@ export function MatchPicksListPage() {
 
   const activeRooms = rooms.filter((room) => room.status !== "scored");
   const completedRooms = rooms.filter((room) => room.status === "scored");
+  async function handleLeave(roomId: string) {
+    setLeavingRoomId(roomId);
+    setMessage("");
+
+    const result = await leaveMatchPickRoom(roomId);
+
+    setLeavingRoomId("");
+
+    if (!result.ok) {
+      setMessage(result.message);
+      return;
+    }
+
+    setRooms((currentRooms) => currentRooms.filter((room) => room.id !== roomId));
+    setMessage(result.message);
+  }
 
   return (
     <AppShell>
@@ -111,15 +132,21 @@ export function MatchPicksListPage() {
           and lock everyone&apos;s pick two hours before kickoff.
         </PageHero>
 
-        {message ? <Notice tone="warning">{message}</Notice> : null}
+        {message ? <Notice tone={message.includes("Left") ? "success" : "warning"}>{message}</Notice> : null}
 
         <RoomSection
           emptyText={isLoading ? "Loading rooms..." : "No active Match Picks yet."}
+          leavingRoomId={leavingRoomId}
+          onLeave={handleLeave}
+          profileId={profile?.id}
           rooms={activeRooms}
           title="Active Match Picks"
         />
         <RoomSection
           emptyText="Completed rooms will appear here after matches are scored."
+          leavingRoomId={leavingRoomId}
+          onLeave={handleLeave}
+          profileId={profile?.id}
           rooms={completedRooms}
           title="Completed"
         />
@@ -322,9 +349,11 @@ export function MatchPickRoomPage({
   roomId: string;
   tab: RoomTab;
 }) {
+  const router = useRouter();
   const { profile } = useGuestSession();
   const [room, setRoom] = useState<MatchPickRoom | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLeaving, setIsLeaving] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isScoring, setIsScoring] = useState(false);
   const [message, setMessage] = useState("");
@@ -384,6 +413,24 @@ export function MatchPickRoomPage({
     }
   }
 
+  async function handleLeave() {
+    setIsLeaving(true);
+    setMessage("");
+
+    const result = await leaveMatchPickRoom(roomId);
+
+    setIsLeaving(false);
+
+    if (!result.ok) {
+      setMessage(result.message);
+      return;
+    }
+
+    const href = "/match-picks";
+    announceRouteStart(href);
+    router.push(href);
+  }
+
   if (!room) {
     return (
       <AppShell>
@@ -403,7 +450,12 @@ export function MatchPickRoomPage({
   return (
     <AppShell>
       <div className="mx-auto grid max-w-6xl gap-5">
-        <RoomHeader room={room} />
+        <RoomHeader
+          canLeave={canLeaveMatchPickRoom(room, profile?.id)}
+          isLeaving={isLeaving}
+          onLeave={handleLeave}
+          room={room}
+        />
         <RoomTabs roomId={room.id} selectedTab={tab} />
 
         {message ? <Notice tone={message.includes("saved") ? "success" : "warning"}>{message}</Notice> : null}
@@ -432,7 +484,17 @@ export function MatchPickRoomPage({
   );
 }
 
-function RoomHeader({ room }: { room: MatchPickRoom }) {
+function RoomHeader({
+  canLeave,
+  isLeaving,
+  onLeave,
+  room,
+}: {
+  canLeave: boolean;
+  isLeaving: boolean;
+  onLeave: () => void;
+  room: MatchPickRoom;
+}) {
   return (
     <section className="grid gap-4 rounded-lg border border-border bg-surface p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -445,14 +507,27 @@ function RoomHeader({ room }: { room: MatchPickRoom }) {
             {getPickTypeLabel(room.pickType)} room for one match.
           </p>
         </div>
-        <button
-          className="inline-flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold text-foreground hover:border-accent"
-          onClick={() => void navigator.clipboard?.writeText(room.inviteCode)}
-          type="button"
-        >
-          <Clipboard aria-hidden className="h-4 w-4" />
-          {room.inviteCode}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className="inline-flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold text-foreground hover:border-accent"
+            onClick={() => void navigator.clipboard?.writeText(room.inviteCode)}
+            type="button"
+          >
+            <Clipboard aria-hidden className="h-4 w-4" />
+            {room.inviteCode}
+          </button>
+          {canLeave ? (
+            <Button
+              loading={isLeaving}
+              loadingLabel="Leaving"
+              onClick={onLeave}
+              variant="secondary"
+            >
+              <LogOut aria-hidden className="h-4 w-4" />
+              Leave
+            </Button>
+          ) : null}
+        </div>
       </div>
       <div className="grid gap-3 md:grid-cols-3">
         <InfoTile icon={CalendarDays} label="Kickoff" value={formatIst(room.kickoffAt)} />
@@ -663,10 +738,16 @@ function ResultsPanel({
 
 function RoomSection({
   emptyText,
+  leavingRoomId,
+  onLeave,
+  profileId,
   rooms,
   title,
 }: {
   emptyText: string;
+  leavingRoomId: string;
+  onLeave: (roomId: string) => void;
+  profileId?: string;
   rooms: MatchPickRoom[];
   title: string;
 }) {
@@ -676,7 +757,13 @@ function RoomSection({
       {rooms.length ? (
         <div className="grid gap-3 lg:grid-cols-2">
           {rooms.map((room) => (
-            <RoomCard key={room.id} room={room} />
+            <RoomCard
+              canLeave={canLeaveMatchPickRoom(room, profileId)}
+              isLeaving={leavingRoomId === room.id}
+              key={room.id}
+              onLeave={onLeave}
+              room={room}
+            />
           ))}
         </div>
       ) : (
@@ -686,7 +773,17 @@ function RoomSection({
   );
 }
 
-function RoomCard({ room }: { room: MatchPickRoom }) {
+function RoomCard({
+  canLeave,
+  isLeaving,
+  onLeave,
+  room,
+}: {
+  canLeave: boolean;
+  isLeaving: boolean;
+  onLeave: (roomId: string) => void;
+  room: MatchPickRoom;
+}) {
   return (
     <div className="grid gap-3 rounded-lg border border-border bg-surface-raised p-4">
       <div className="flex items-start justify-between gap-3">
@@ -697,12 +794,25 @@ function RoomCard({ room }: { room: MatchPickRoom }) {
         </div>
         <BadgeText>{room.inviteCode}</BadgeText>
       </div>
-      <Link
-        className="inline-flex min-h-10 items-center justify-center rounded-md bg-accent px-3 text-sm font-semibold text-accent-foreground"
-        href={`/match-picks/${room.id}/picks`}
-      >
-        Open
-      </Link>
+      <div className={cn("grid gap-2", canLeave && "sm:grid-cols-2")}>
+        <Link
+          className="inline-flex min-h-10 items-center justify-center rounded-md bg-accent px-3 text-sm font-semibold text-accent-foreground"
+          href={`/match-picks/${room.id}/picks`}
+        >
+          Open
+        </Link>
+        {canLeave ? (
+          <Button
+            loading={isLeaving}
+            loadingLabel="Leaving"
+            onClick={() => onLeave(room.id)}
+            variant="secondary"
+          >
+            <LogOut aria-hidden className="h-4 w-4" />
+            Leave
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }

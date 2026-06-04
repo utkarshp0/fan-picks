@@ -374,6 +374,50 @@ export async function joinMatchPickRoom(
   return { ok: true, message: `${auth.displayName} joined ${room.name}.`, room };
 }
 
+export async function leaveMatchPickRoom(
+  accessToken: string,
+  roomId: string,
+): Promise<ActionResult> {
+  const auth = await authenticate(accessToken);
+
+  if (!auth.ok) {
+    return auth;
+  }
+
+  const supabase = createSupabaseServiceClient();
+  const { data: participant, error: participantFetchError } = await supabase
+    .from("match_pick_participants")
+    .select("id")
+    .eq("room_id", roomId)
+    .eq("profile_id", auth.userId)
+    .is("left_at", null)
+    .maybeSingle();
+
+  if (participantFetchError) {
+    return { ok: false, message: participantFetchError.message, status: 400 };
+  }
+
+  if (!participant) {
+    return { ok: false, message: "You are not in this Match Pick room.", status: 404 };
+  }
+
+  const now = new Date().toISOString();
+  const { error: participantUpdateError } = await supabase
+    .from("match_pick_participants")
+    .update({ left_at: now })
+    .eq("id", participant.id as string);
+
+  if (participantUpdateError) {
+    return { ok: false, message: participantUpdateError.message, status: 400 };
+  }
+
+  await insertAuditEvents(roomId, [
+    createAuditEvent("participant_left", auth.displayName, `${auth.displayName} left this Match Pick room.`, now),
+  ]);
+
+  return { ok: true, message: "Left Match Pick room." };
+}
+
 export async function saveMatchPickAnswer(
   accessToken: string,
   roomId: string,

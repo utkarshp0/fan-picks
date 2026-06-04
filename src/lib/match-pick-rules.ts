@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import type {
   MatchPickAnswer,
+  MatchPickRoom,
   MatchPickResultStatus,
   MatchPickRoomStatus,
   MatchPickType,
@@ -53,6 +54,18 @@ export function getMatchPickLockAt(kickoffUtc: string) {
 
 export function isPastMatchPickLock(lockAt: string, now = new Date()) {
   return now.getTime() >= new Date(lockAt).getTime();
+}
+
+export function canLeaveMatchPickRoom(
+  room: MatchPickRoom,
+  profileId: string | undefined,
+) {
+  return Boolean(
+    profileId &&
+      room.participants.some(
+        (participant) => participant.profileId === profileId && !participant.leftAt,
+      ),
+  );
 }
 
 export function getComputedMatchPickStatus(

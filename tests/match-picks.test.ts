@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  canLeaveMatchPickRoom,
   createMatchPickRoomName,
   evaluateMatchPickAnswer,
   getMatchPickLockAt,
@@ -25,6 +26,42 @@ const fixture: SportsFixture = {
   homeScore: 2,
   awayScore: 1,
   raw: {},
+};
+
+const room = {
+  id: "room-1",
+  auditLog: [],
+  createdAt: "2026-06-01T00:00:00.000Z",
+  creatorProfileId: "profile-1",
+  fixture,
+  fixtureId: fixture.id,
+  inviteCode: "MP-ABC123",
+  kickoffAt: "2026-06-11T19:00:00.000Z",
+  lockAt: "2026-06-11T17:00:00.000Z",
+  name: "Mexico vs South Africa - Winner",
+  participants: [
+    {
+      id: "participant-1",
+      displayName: "Utkarsh",
+      handle: "utkarsh",
+      joinedAt: "2026-06-01T00:00:00.000Z",
+      profileId: "profile-1",
+      role: "creator" as const,
+    },
+    {
+      id: "participant-2",
+      displayName: "Mahi",
+      handle: "mahi",
+      joinedAt: "2026-06-01T00:00:00.000Z",
+      leftAt: "2026-06-02T00:00:00.000Z",
+      profileId: "profile-2",
+      role: "participant" as const,
+    },
+  ],
+  pickType: "winner" as const,
+  status: "open" as const,
+  submissions: [],
+  tournamentId: fixture.tournamentId,
 };
 
 describe("Match Picks rules", () => {
@@ -123,5 +160,12 @@ describe("Match Picks rules", () => {
       matchPickRoomSelect,
       /match_pick_versions!match_pick_versions_submission_id_fkey\(\*\)/,
     );
+  });
+
+  it("only allows active participants to leave a Match Pick room", () => {
+    assert.equal(canLeaveMatchPickRoom(room, "profile-1"), true);
+    assert.equal(canLeaveMatchPickRoom(room, "profile-2"), false);
+    assert.equal(canLeaveMatchPickRoom(room, "unknown-profile"), false);
+    assert.equal(canLeaveMatchPickRoom(room, undefined), false);
   });
 });
