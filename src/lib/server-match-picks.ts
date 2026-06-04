@@ -578,7 +578,7 @@ async function fetchRoomsByIds(roomIds: string[], viewerProfileId: string) {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("match_pick_rooms")
-    .select(roomSelect)
+    .select(matchPickRoomSelect)
     .in("id", roomIds)
     .order("kickoff_at", { ascending: true });
 
@@ -597,7 +597,7 @@ async function fetchRoomById(
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("match_pick_rooms")
-    .select(roomSelect)
+    .select(matchPickRoomSelect)
     .eq("id", roomId)
     .maybeSingle();
 
@@ -608,8 +608,8 @@ async function fetchRoomById(
   return mapRoomFromDb(data as DbRoom, viewerProfileId, options);
 }
 
-const roomSelect =
-  "*, sports_fixtures(*), match_pick_participants(*), match_pick_submissions(*, match_pick_versions(*)), match_pick_audit_events(*)";
+export const matchPickRoomSelect =
+  "*, sports_fixtures(*), match_pick_participants(*), match_pick_submissions(*, match_pick_versions!match_pick_versions_submission_id_fkey(*)), match_pick_audit_events(*)";
 
 function mapRoomFromDb(
   row: DbRoom,

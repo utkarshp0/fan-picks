@@ -9,6 +9,7 @@ import {
   isPastMatchPickLock,
   validateMatchPickAnswer,
 } from "../src/lib/match-pick-rules";
+import { matchPickRoomSelect } from "../src/lib/server-match-picks";
 import type { SportsFixture } from "../src/types/sports-data";
 
 const fixture: SportsFixture = {
@@ -114,6 +115,13 @@ describe("Match Picks rules", () => {
     assert.equal(
       getWinnerMessage(["Utkarsh"], "exact_score"),
       "Utkarsh nailed the exact score. That was suspiciously clean.",
+    );
+  });
+
+  it("uses the explicit submission versions relationship in room reload queries", () => {
+    assert.match(
+      matchPickRoomSelect,
+      /match_pick_versions!match_pick_versions_submission_id_fkey\(\*\)/,
     );
   });
 });
