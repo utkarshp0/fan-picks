@@ -41,6 +41,8 @@ Users should be able to:
 8. Reopen accidentally locked picks before the lock date.
 9. See transparent audit events for pool creation, joins, leaves, bet changes,
    prediction field changes, draft saves, and locked picks.
+10. Create separate Match Pick rooms for one fixture and one prediction
+    question, invite friends, and reveal correct users after the fixture result.
 
 Avoid adding casino, odds, money, payout, wager, or sportsbook language.
 
@@ -51,9 +53,17 @@ Avoid adding casino, odds, money, payout, wager, or sportsbook language.
 - Left sidebar should remain.
 - Top-level pages are:
   - `/championships`
+  - `/match-picks`
   - `/live-scores`
   - `/championships/create`
   - `/championships/join`
+- Match Pick pages are:
+  - `/match-picks/create`
+  - `/match-picks/join`
+  - `/match-picks/[roomId]/picks`
+  - `/match-picks/[roomId]/participants`
+  - `/match-picks/[roomId]/audit`
+  - `/match-picks/[roomId]/results`
 - Pool detail pages are:
   - `/championships/[championshipId]/predictions`
   - `/championships/[championshipId]/participants`
@@ -164,8 +174,10 @@ Relevant files:
 - `src/lib/championship-store.ts`
 - `src/lib/pool-supabase.ts`
 - `src/lib/server-prediction-locks.ts`
+- `src/lib/server-match-picks.ts`
 - `src/lib/server-live-scores.ts`
 - `src/types/championship.ts`
+- `src/types/match-picks.ts`
 
 ## Prediction Lock Business Rule
 
@@ -241,8 +253,9 @@ existing pools stable if the provider response shape changes.
 
 ## Live Scores
 
-Live Scores is a standalone display feature and should stay separate from
-pools/picks until match-based bets are designed.
+Live Scores is a standalone display feature. Match Picks read the same cached
+fixture data, but live-score provider/source/cache details should stay out of
+the product UI.
 
 Current implementation:
 
@@ -273,6 +286,59 @@ small preview cap. The UI filters by selected local date on the client, shows a
 full tournament fixture list, and updates an inline Match Details panel when a
 match card is selected.
 
+## Match Picks
+
+Match Picks are a separate top-level feature from Pools. Keep them separate.
+
+Product rules:
+
+- UI wording should say Match Picks / Match Pick room, not Match Bets.
+- One Match Pick room equals one fixture plus one pick type.
+- There is no point system or leaderboard in the MVP.
+- Each room declares correct users for that one question after the final result.
+- The three default pick types are Winner, Exact score, and Both teams score.
+- Winner choices must show the real team names plus Draw, not Home/Away.
+- Exact score inputs must show the real team names, not Home score/Away score.
+- Create should show fixtures from the next three days only. If none are inside
+  that window, show the next six upcoming fixtures.
+- Show all kickoff and lock times in IST.
+- Server lock rule is `lock_at = kickoff_at - 2 hours`.
+- Saves after `lock_at` are rejected on the server.
+- Other participants' picks stay hidden until `lock_at`.
+- Results are scored from synced `sports_fixtures`, not user input.
+- Winner copy should be light and funny, for example:
+  `Nobody got this one. Football chose chaos.`
+
+Core files:
+
+- `src/components/match-picks/match-picks-pages.tsx`
+- `src/lib/match-pick-rules.ts`
+- `src/lib/match-picks-client.ts`
+- `src/lib/server-match-picks.ts`
+- `src/types/match-picks.ts`
+- `tests/match-picks.test.ts`
+- `supabase/match-picks-migration.sql`
+
+Routes:
+
+- `/match-picks`
+- `/match-picks/create`
+- `/match-picks/join`
+- `/match-picks/[roomId]/picks`
+- `/match-picks/[roomId]/participants`
+- `/match-picks/[roomId]/audit`
+- `/match-picks/[roomId]/results`
+
+API:
+
+- `GET /api/match-picks/fixtures`
+- `GET /api/match-picks/rooms`
+- `POST /api/match-picks/rooms`
+- `POST /api/match-picks/join`
+- `GET /api/match-picks/[roomId]`
+- `POST /api/match-picks/[roomId]/save`
+- `POST /api/match-picks/[roomId]/score`
+
 ## Supabase SQL
 
 Run these for a clean deployment:
@@ -280,6 +346,7 @@ Run these for a clean deployment:
 - `supabase/schema.sql`
 - `supabase/pool-bets-migration.sql`
 - `supabase/sports-data-migration.sql`
+- `supabase/match-picks-migration.sql`
 - `supabase/rls-migration.sql`
 
 If production shows `infinite recursion detected in policy for relation
@@ -314,6 +381,11 @@ base new auth work on `app_accounts`.
 - `sports_teams`
 - `sports_fixtures`
 - `sports_sync_runs`
+- `match_pick_rooms`
+- `match_pick_participants`
+- `match_pick_submissions`
+- `match_pick_versions`
+- `match_pick_audit_events`
 - Supabase Auth internal user tables
 
 Important relationships:
@@ -416,6 +488,9 @@ Quick Supabase Auth smoke test from Node can use the anon key and
 
 Keep this short and newest-first. Record changes that affect future AI context.
 
+- 2026-06-04: Added separate Match Picks MVP with one fixture plus one question
+  per room, next-three-days fixture creation, IST lock wording, two-hours-before
+  kickoff server lock, invite/join, save, audit, and result scoring.
 - 2026-06-04: Added `supabase/rls-recursion-fix.sql` and updated
   `rls-migration.sql` to replace recursive participant membership policies with
   `SECURITY DEFINER` helper functions.

@@ -79,8 +79,8 @@ If no handoff update is needed, note the reason in the final response.
 ## Live Scores
 
 1. Open `/live-scores` after login.
-2. Confirm the page shows FIFA World Cup 2026, fixture count, source, and
-   upcoming matches.
+2. Confirm the page shows FIFA World Cup 2026, fixture count, and upcoming
+   matches without exposing provider/source/cache metadata.
 3. Confirm `/api/live-scores` returns cached fixtures without exposing provider
    keys.
 4. Confirm the page has no manual provider refresh button.
@@ -94,6 +94,30 @@ If no handoff update is needed, note the reason in the final response.
 9. If `WORLDCUP26_API_URL` is configured later, temporarily break Big Balls
    credentials in a non-production environment and confirm fallback data is
    normalized.
+
+## Match Picks
+
+1. Run `supabase/match-picks-migration.sql` before using Match Picks in a
+   Supabase environment.
+2. Open `/match-picks` after login and confirm the sidebar/mobile nav has a
+   real Match Picks page.
+3. Open `/match-picks/create` and confirm only the next three days of fixtures
+   are shown, or the next six upcoming fixtures if none are inside that window.
+4. Confirm kickoff and lock times use IST wording.
+5. Create a Winner room and confirm the choices show the two team names plus
+   Draw, not Home/Away.
+6. Create an Exact score room and confirm score inputs use the two team names,
+   not Home score/Away score.
+7. Join the room from a second account with the invite code.
+8. Save picks from both accounts before lock and confirm versions/audit events
+   are created.
+9. Set up or test against a locked fixture and confirm saves are rejected after
+   kickoff minus two hours.
+10. Confirm other participants' saved picks are hidden before lock and visible
+    after lock.
+11. When a fixture is finished, click Check final result and confirm correct
+    users are declared with the friendly winner copy.
+12. Confirm Match Picks do not use or display a points leaderboard.
 
 ## Predictions
 

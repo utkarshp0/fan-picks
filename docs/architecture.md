@@ -13,6 +13,7 @@ The main shell is `src/components/app/app-shell.tsx`.
   `/championships` so private pool URLs are not left in the address bar.
 - Top-level navigation:
   - Pools: `/championships`
+  - Match Picks: `/match-picks`
   - Live Scores: `/live-scores`
   - Create Pool: `/championships/create`
   - Join Pool: `/championships/join`
@@ -125,12 +126,59 @@ Behavior:
 - The UI polls the app server every 60 seconds. It never calls provider APIs
   from the browser.
 
-The page currently displays live, upcoming, and completed fixtures. Match-based
-bets and kickoff-specific pick locks are future features and should stay
-separate until designed. The live-score API returns the full cached fixture set
-for the tournament; the page handles date filtering on the client with date
-chips, keeps an all-fixtures section available, and updates an inline Match
-Details panel when a fixture is selected.
+The page currently displays live, upcoming, and completed fixtures. The
+live-score API returns the full cached fixture set for the tournament; the page
+handles date filtering on the client with date chips, keeps an all-fixtures
+section available, and updates an inline Match Details panel when a fixture is
+selected.
+
+## Match Picks
+
+Match Picks are separate from Pools. One Match Pick room is one fixture plus one
+question type. There is no points leaderboard in the MVP; each room simply
+declares who got that one question right.
+
+Core files:
+
+- `src/components/match-picks/match-picks-pages.tsx`
+- `src/lib/match-pick-rules.ts`
+- `src/lib/server-match-picks.ts`
+- `src/lib/match-picks-client.ts`
+- `src/types/match-picks.ts`
+- `supabase/match-picks-migration.sql`
+
+Routes:
+
+- `/match-picks`
+- `/match-picks/create`
+- `/match-picks/join`
+- `/match-picks/[roomId]/picks`
+- `/match-picks/[roomId]/participants`
+- `/match-picks/[roomId]/audit`
+- `/match-picks/[roomId]/results`
+
+API routes:
+
+- `GET /api/match-picks/fixtures`
+- `GET /api/match-picks/rooms`
+- `POST /api/match-picks/rooms`
+- `POST /api/match-picks/join`
+- `GET /api/match-picks/[roomId]`
+- `POST /api/match-picks/[roomId]/save`
+- `POST /api/match-picks/[roomId]/score`
+
+Behavior:
+
+- Create shows only fixtures in the next three days. If none exist, it falls
+  back to the next six upcoming fixtures.
+- All kickoff and lock wording is displayed in IST.
+- Lock time is calculated server-side as fixture kickoff minus two hours.
+- Save is rejected server-side after `lock_at`.
+- Other participants' picks are hidden until `lock_at`.
+- Winner and exact-score labels use actual team names, never Home/Away wording
+  in the UI.
+- Default question types are Winner, Exact score, and Both teams score.
+- Results use the synced fixture final score and witty winner copy.
 
 Pool creators can add or remove bets in a draft list on the Bets page before
 the lock date, as long as nobody has locked picks. Participants cannot edit
