@@ -1,4 +1,4 @@
-import PDFDocument from "pdfkit";
+import PDFDocument from "pdfkit/js/pdfkit.standalone.js";
 
 import { getChampionshipTemplate } from "@/data/templates";
 import { getAppNowIso } from "@/lib/app-clock";

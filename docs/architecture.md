@@ -114,9 +114,11 @@ Server/data rules:
   model.
 - The agreement API is forced to the Node.js runtime because PDFKit is not an
   edge-runtime dependency.
-- `next.config.ts` explicitly includes `node_modules/pdfkit/js/data/**/*` in
-  output file tracing for this API so Vercel bundles PDFKit's built-in `.afm`
-  font metric files.
+- The PDF renderer imports `pdfkit/js/pdfkit.standalone.js` so PDFKit's standard
+  `.afm` font metrics are embedded in the bundle instead of read from the
+  serverless filesystem at runtime.
+- `next.config.ts` also includes `node_modules/pdfkit/js/data/**/*` in output
+  file tracing as extra defense.
 
 Business rules:
 

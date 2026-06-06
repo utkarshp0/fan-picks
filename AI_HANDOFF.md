@@ -259,10 +259,12 @@ Routes and files:
 - Tests: `tests/pool-agreement.test.ts`
 - The agreement API explicitly uses `runtime = "nodejs"` because PDFKit needs a
   Node runtime on Vercel.
-- `next.config.ts` includes `node_modules/pdfkit/js/data/**/*` in output file
-  tracing for the agreement API. PDFKit reads built-in `.afm` font metric files
-  at runtime; without this include, Vercel can return `ENOENT` for
-  `Helvetica.afm` during PDF download.
+- The PDF renderer imports `pdfkit/js/pdfkit.standalone.js`, not `pdfkit`.
+  The standalone build embeds the standard `.afm` font metrics in JS. The
+  normal Node build tries to read `node_modules/pdfkit/js/data/Helvetica.afm` at
+  runtime, which can fail in Vercel serverless bundles.
+- `next.config.ts` still includes `node_modules/pdfkit/js/data/**/*` in output
+  file tracing as extra defense, but the standalone import is the primary fix.
 
 Rules:
 
@@ -635,9 +637,9 @@ Keep this short and newest-first. Record changes that affect future AI context.
 - 2026-06-06: Hardened Pool Agreement PDF download for Vercel by forcing the
   agreement API to Node.js runtime and added a "Hereby Agreed" participant
   attestation section to the preview/PDF.
-- 2026-06-06: Added Next output file tracing include for PDFKit `.afm` data
-  files so Vercel serverless PDF downloads can find `Helvetica.afm` and related
-  built-in font metrics.
+- 2026-06-06: Switched agreement PDF generation to
+  `pdfkit/js/pdfkit.standalone.js` so Vercel does not need to open PDFKit `.afm`
+  font metric files from the serverless filesystem at runtime.
 - 2026-06-04: Added separate Match Picks MVP with one fixture plus one question
   per room, next-three-days fixture creation, IST lock wording, two-hours-before
   kickoff server lock, invite/join, save, audit, and result scoring.
