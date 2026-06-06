@@ -305,6 +305,10 @@ Product rules:
 - Server lock rule is `lock_at = kickoff_at - 2 hours`.
 - Saves after `lock_at` are rejected on the server.
 - Other participants' picks stay hidden until `lock_at`.
+- Match Pick room headers show an invite panel with a shareable
+  `/match-picks/join?code=...` link, the raw invite code, a ready-to-copy
+  message, and native share support where available. The Join page prefills the
+  invite code from the `code` query parameter.
 - Results are scored from synced `sports_fixtures`, not user input.
 - Winner copy should be light and funny, for example:
   `Nobody got this one. Football chose chaos.`
@@ -336,8 +340,14 @@ API:
 - `POST /api/match-picks/rooms`
 - `POST /api/match-picks/join`
 - `GET /api/match-picks/[roomId]`
+- `POST /api/match-picks/[roomId]/leave`
 - `POST /api/match-picks/[roomId]/save`
 - `POST /api/match-picks/[roomId]/score`
+
+Leaving a Match Pick room soft-updates the current user's
+`match_pick_participants.left_at`, keeps room history/submissions intact, writes
+a `participant_left` audit event, and removes the room from that user's active
+Match Picks list.
 
 ## Supabase SQL
 
@@ -488,6 +498,13 @@ Quick Supabase Auth smoke test from Node can use the anon key and
 
 Keep this short and newest-first. Record changes that affect future AI context.
 
+- 2026-06-06: Added friendlier Match Picks invites with shareable join links,
+  join-code query prefill, ready-to-copy invite messages, and native share
+  fallback behavior.
+- 2026-06-06: Added Match Picks leave flow with
+  `POST /api/match-picks/[roomId]/leave`, sidebar/list and room-header Leave
+  buttons, soft-leave participant persistence, and `participant_left` audit
+  events.
 - 2026-06-04: Added separate Match Picks MVP with one fixture plus one question
   per room, next-three-days fixture creation, IST lock wording, two-hours-before
   kickoff server lock, invite/join, save, audit, and result scoring.

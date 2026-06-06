@@ -6,12 +6,15 @@ import {
   CheckCircle2,
   Clipboard,
   Clock3,
+  Copy,
+  ExternalLink,
   LogOut,
   ListChecks,
   Lock,
   Plus,
   QrCode,
   Save,
+  Share2,
   Trophy,
   Users,
 } from "lucide-react";
@@ -33,7 +36,11 @@ import {
   saveMatchPickAnswer,
   scoreMatchPickRoom,
 } from "@/lib/match-picks-client";
-import { canLeaveMatchPickRoom } from "@/lib/match-pick-rules";
+import {
+  canLeaveMatchPickRoom,
+  createMatchPickInviteMessage,
+  getMatchPickInvitePath,
+} from "@/lib/match-pick-rules";
 import { cn } from "@/lib/utils";
 import type {
   MatchPickAnswer,
@@ -286,9 +293,13 @@ export function MatchPickCreatePage() {
   );
 }
 
-export function MatchPickJoinPage() {
+export function MatchPickJoinPage({
+  initialInviteCode = "",
+}: {
+  initialInviteCode?: string;
+}) {
   const router = useRouter();
-  const [inviteCode, setInviteCode] = useState("");
+  const [inviteCode, setInviteCode] = useState(initialInviteCode.toUpperCase());
   const [isJoining, setIsJoining] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -495,6 +506,39 @@ function RoomHeader({
   onLeave: () => void;
   room: MatchPickRoom;
 }) {
+  const [inviteFeedback, setInviteFeedback] = useState("");
+  const invitePath = getMatchPickInvitePath(room.inviteCode);
+  const inviteUrl = getAbsoluteAppUrl(invitePath);
+  const inviteMessage = createMatchPickInviteMessage({
+    inviteCode: room.inviteCode,
+    inviteUrl,
+    lockLabel: formatIst(room.lockAt),
+    roomName: room.name,
+  });
+
+  async function copyInvite(value: string, feedback: string) {
+    await navigator.clipboard?.writeText(value);
+    setInviteFeedback(feedback);
+  }
+
+  async function shareInvite() {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          text: inviteMessage,
+          title: room.name,
+          url: inviteUrl,
+        });
+        setInviteFeedback("Invite shared.");
+        return;
+      } catch {
+        // The user can cancel native sharing; fall back to keeping the invite available.
+      }
+    }
+
+    await copyInvite(inviteMessage, "Invite message copied.");
+  }
+
   return (
     <section className="grid gap-4 rounded-lg border border-border bg-surface p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -510,7 +554,7 @@ function RoomHeader({
         <div className="flex flex-wrap gap-2">
           <button
             className="inline-flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold text-foreground hover:border-accent"
-            onClick={() => void navigator.clipboard?.writeText(room.inviteCode)}
+            onClick={() => void copyInvite(room.inviteCode, "Invite code copied.")}
             type="button"
           >
             <Clipboard aria-hidden className="h-4 w-4" />
@@ -533,6 +577,47 @@ function RoomHeader({
         <InfoTile icon={CalendarDays} label="Kickoff" value={formatIst(room.kickoffAt)} />
         <InfoTile icon={Lock} label="Picks lock" value={formatIst(room.lockAt)} />
         <InfoTile icon={Trophy} label="Fixture" value={`${room.fixture.homeTeamName} vs ${room.fixture.awayTeamName}`} />
+      </div>
+      <div className="grid gap-3 rounded-lg border border-border bg-background p-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Invite friends</p>
+            <p className="mt-1 text-sm text-muted">
+              Share the link or message. The link opens Join Match Pick with the code filled in.
+            </p>
+          </div>
+          {inviteFeedback ? <BadgeText>{inviteFeedback}</BadgeText> : null}
+        </div>
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="min-w-0 rounded-md border border-border bg-surface px-3 py-2">
+            <p className="text-xs text-muted">Invite link</p>
+            <p className="mt-1 break-all text-sm font-semibold text-foreground">{inviteUrl}</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+            <Button
+              onClick={() => void copyInvite(inviteUrl, "Invite link copied.")}
+              variant="secondary"
+            >
+              <Copy aria-hidden className="h-4 w-4" />
+              Copy link
+            </Button>
+            <Button
+              onClick={() => void copyInvite(inviteMessage, "Invite message copied.")}
+              variant="secondary"
+            >
+              <Clipboard aria-hidden className="h-4 w-4" />
+              Copy message
+            </Button>
+            <Button onClick={() => void shareInvite()}>
+              <Share2 aria-hidden className="h-4 w-4" />
+              Share
+            </Button>
+          </div>
+        </div>
+        <div className="rounded-md border border-border bg-surface-raised p-3 text-sm leading-6 text-muted">
+          <p className="font-semibold text-foreground">Message preview</p>
+          <p className="mt-2 whitespace-pre-line">{inviteMessage}</p>
+        </div>
       </div>
     </section>
   );
@@ -784,6 +869,8 @@ function RoomCard({
   onLeave: (roomId: string) => void;
   room: MatchPickRoom;
 }) {
+  const invitePath = getMatchPickInvitePath(room.inviteCode);
+
   return (
     <div className="grid gap-3 rounded-lg border border-border bg-surface-raised p-4">
       <div className="flex items-start justify-between gap-3">
@@ -794,12 +881,19 @@ function RoomCard({
         </div>
         <BadgeText>{room.inviteCode}</BadgeText>
       </div>
-      <div className={cn("grid gap-2", canLeave && "sm:grid-cols-2")}>
+      <div className={cn("grid gap-2", canLeave ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
         <Link
           className="inline-flex min-h-10 items-center justify-center rounded-md bg-accent px-3 text-sm font-semibold text-accent-foreground"
           href={`/match-picks/${room.id}/picks`}
         >
           Open
+        </Link>
+        <Link
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-semibold text-foreground hover:border-accent"
+          href={invitePath}
+        >
+          <ExternalLink aria-hidden className="h-4 w-4" />
+          Invite link
         </Link>
         {canLeave ? (
           <Button
@@ -1085,4 +1179,12 @@ function formatIst(value?: string) {
     timeStyle: "short",
     timeZone: "Asia/Kolkata",
   }).format(new Date(value))} IST`;
+}
+
+function getAbsoluteAppUrl(path: string) {
+  if (typeof window === "undefined") {
+    return path;
+  }
+
+  return `${window.location.origin}${path}`;
 }

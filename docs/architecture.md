@@ -164,6 +164,7 @@ API routes:
 - `POST /api/match-picks/rooms`
 - `POST /api/match-picks/join`
 - `GET /api/match-picks/[roomId]`
+- `POST /api/match-picks/[roomId]/leave`
 - `POST /api/match-picks/[roomId]/save`
 - `POST /api/match-picks/[roomId]/score`
 
@@ -175,6 +176,13 @@ Behavior:
 - Lock time is calculated server-side as fixture kickoff minus two hours.
 - Save is rejected server-side after `lock_at`.
 - Other participants' picks are hidden until `lock_at`.
+- Leaving a Match Pick room sets the active participant row's `left_at`, keeps
+  history intact, writes a `participant_left` audit event, and removes the room
+  from that user's active list.
+- Room invites use a shareable `/match-picks/join?code=...` link. The room
+  header exposes the raw code, full link, ready-to-copy message, and native
+  share action where supported. The Join page prefills from the `code` query
+  parameter.
 - Winner and exact-score labels use actual team names, never Home/Away wording
   in the UI.
 - Default question types are Winner, Exact score, and Both teams score.

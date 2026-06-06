@@ -68,6 +68,29 @@ export function canLeaveMatchPickRoom(
   );
 }
 
+export function getMatchPickInvitePath(inviteCode: string) {
+  return `/match-picks/join?code=${encodeURIComponent(inviteCode)}`;
+}
+
+export function createMatchPickInviteMessage({
+  inviteCode,
+  inviteUrl,
+  lockLabel,
+  roomName,
+}: {
+  inviteCode: string;
+  inviteUrl: string;
+  lockLabel: string;
+  roomName: string;
+}) {
+  return [
+    `Join my Fan Picks Match Pick: ${roomName}`,
+    `Make your pick before ${lockLabel}.`,
+    `Invite code: ${inviteCode}`,
+    inviteUrl,
+  ].join("\n");
+}
+
 export function getComputedMatchPickStatus(
   fixture: SportsFixture,
   lockAt: string,

@@ -3,8 +3,10 @@ import { describe, it } from "node:test";
 
 import {
   canLeaveMatchPickRoom,
+  createMatchPickInviteMessage,
   createMatchPickRoomName,
   evaluateMatchPickAnswer,
+  getMatchPickInvitePath,
   getMatchPickLockAt,
   getWinnerMessage,
   isPastMatchPickLock,
@@ -167,5 +169,26 @@ describe("Match Picks rules", () => {
     assert.equal(canLeaveMatchPickRoom(room, "profile-2"), false);
     assert.equal(canLeaveMatchPickRoom(room, "unknown-profile"), false);
     assert.equal(canLeaveMatchPickRoom(room, undefined), false);
+  });
+
+  it("builds a shareable Match Pick invite path", () => {
+    assert.equal(
+      getMatchPickInvitePath("MP-ABC 123"),
+      "/match-picks/join?code=MP-ABC%20123",
+    );
+  });
+
+  it("builds a friendly Match Pick invite message", () => {
+    const message = createMatchPickInviteMessage({
+      inviteCode: room.inviteCode,
+      inviteUrl: "https://fan-picks.vercel.app/match-picks/join?code=MP-ABC123",
+      lockLabel: "11 Jun 2026, 10:30 pm IST",
+      roomName: room.name,
+    });
+
+    assert.match(message, /Join my Fan Picks Match Pick: Mexico vs South Africa - Winner/);
+    assert.match(message, /Make your pick before 11 Jun 2026, 10:30 pm IST/);
+    assert.match(message, /Invite code: MP-ABC123/);
+    assert.match(message, /https:\/\/fan-picks\.vercel\.app\/match-picks\/join\?code=MP-ABC123/);
   });
 });
