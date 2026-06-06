@@ -288,6 +288,36 @@ function AgreementPreview({
         ))}
       </div>
 
+      <div className="border-t border-[#b19877] p-5">
+        <div className="rounded-lg border border-[#b19877] bg-[#f8eedc] p-5">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8b5c2f]">
+            Hereby agreed
+          </p>
+          <h3 className="mt-2 text-lg font-black">Participant attestation</h3>
+          <p className="mt-2 text-sm leading-6 text-[#3f3429]">
+            The undersigned participants hereby agree that this pool, its lock
+            date, saved picks, and audit log form the official friendship
+            record. After sealing, selective memory may be admired for
+            creativity, but it shall not be accepted as evidence.
+          </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {activeParticipants.map((participant) => (
+              <div
+                className="rounded-md border border-[#d0b894] bg-[#efe3ce] p-3"
+                key={participant.profileId}
+              >
+                <p className="font-serif text-xl font-semibold italic">
+                  {participant.displayName}
+                </p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[#8b5c2f]">
+                  @{participant.handle} · {agreement.isSealed ? "sealed" : "draft"}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-5 border-t border-[#b19877] p-5 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-lg border border-[#b19877] bg-[#f8eedc] p-5">
           <div className="flex items-center gap-2">

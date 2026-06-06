@@ -257,6 +257,8 @@ Routes and files:
 - Server fetch/PDF renderer: `src/lib/server-pool-agreement.ts`
 - Client fetch/download helper: `src/lib/pool-agreement-client.ts`
 - Tests: `tests/pool-agreement.test.ts`
+- The agreement API explicitly uses `runtime = "nodejs"` because PDFKit needs a
+  Node runtime on Vercel.
 
 Rules:
 
@@ -280,6 +282,8 @@ Rules:
   - SHA-256 fingerprint over the stable agreement snapshot
 - The PDF includes an audit summary, not the full audit event log. The full log
   remains on the Audit Log page.
+- The preview/PDF includes a "Hereby Agreed" attestation section so it reads
+  like an actual friendly agreement, not only a certificate.
 
 ## Sports Data Integration
 
@@ -624,6 +628,9 @@ Keep this short and newest-first. Record changes that affect future AI context.
   recorded picks schedule after lock, audit summary, route
   `/championships/[championshipId]/agreement`, API
   `/api/pools/[championshipId]/agreement`, and unit tests.
+- 2026-06-06: Hardened Pool Agreement PDF download for Vercel by forcing the
+  agreement API to Node.js runtime and added a "Hereby Agreed" participant
+  attestation section to the preview/PDF.
 - 2026-06-04: Added separate Match Picks MVP with one fixture plus one question
   per room, next-three-days fixture creation, IST lock wording, two-hours-before
   kickoff server lock, invite/join, save, audit, and result scoring.

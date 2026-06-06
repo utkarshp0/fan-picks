@@ -356,11 +356,23 @@ function drawAgreementPage(
     y = clause(document, title, body, y);
   }
 
-  y = section(document, "6. PARTICIPANT SIGNATURES", y);
+  y = section(document, "6. HEREBY AGREED", y);
+  y = paragraph(
+    document,
+    "The Participants hereby agree that the Pool, the picks, the Lock Date, and the Audit Log together form the official friendship record. Each Participant further agrees that after sealing, selective memory shall be admired for creativity but rejected as evidence.",
+    86,
+    y,
+    430,
+    9.6,
+    2,
+  );
+  y += 10;
+
+  y = section(document, "7. PARTICIPANT SIGNATURES", y);
   const signatureY = y;
   for (const [index, participant] of agreement.participants.slice(0, 4).entries()) {
     const x = 78 + (index % 2) * 230;
-    const boxY = signatureY + Math.floor(index / 2) * 58;
+    const boxY = signatureY + Math.floor(index / 2) * 50;
     signatureBlock(document, x, boxY, participant.displayName, `@${participant.handle}`, agreement.isSealed ? "Locked" : "Waiting");
   }
 

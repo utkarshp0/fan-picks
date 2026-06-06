@@ -5,6 +5,9 @@ import {
   getPoolAgreement,
 } from "@/lib/server-pool-agreement";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 type RouteContext = {
   params: Promise<{ championshipId: string }>;
 };
@@ -21,17 +24,30 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   }
 
   if (request.nextUrl.searchParams.get("format") === "pdf") {
-    const pdf = await createPoolAgreementPdf(result.agreement);
-    const filename = `${result.agreement.agreementId.toLowerCase()}.pdf`;
+    try {
+      const pdf = await createPoolAgreementPdf(result.agreement);
+      const filename = `${result.agreement.agreementId.toLowerCase()}.pdf`;
 
-    return new Response(new Uint8Array(pdf), {
-      headers: {
-        "Cache-Control": "no-store",
-        "Content-Disposition": `attachment; filename="${filename}"`,
-        "Content-Type": "application/pdf",
-      },
-      status: 200,
-    });
+      return new Response(new Uint8Array(pdf), {
+        headers: {
+          "Cache-Control": "no-store",
+          "Content-Disposition": `attachment; filename="${filename}"`,
+          "Content-Type": "application/pdf",
+        },
+        status: 200,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            error instanceof Error
+              ? `Agreement PDF failed: ${error.message}`
+              : "Agreement PDF failed.",
+        },
+        { status: 500 },
+      );
+    }
   }
 
   return NextResponse.json(result, {

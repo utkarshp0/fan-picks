@@ -112,6 +112,8 @@ Server/data rules:
   prediction versions, and audit events from Supabase using the service role.
 - `?format=pdf` returns a PDF generated from the same server-side agreement
   model.
+- The agreement API is forced to the Node.js runtime because PDFKit is not an
+  edge-runtime dependency.
 
 Business rules:
 
@@ -127,6 +129,8 @@ Business rules:
   `FPA-{inviteCode}-{lockDate YYYYMMDD}`, and a SHA-256 fingerprint.
 - The PDF includes a compact audit summary. The full audit timeline remains on
   the Audit Log page.
+- The preview/PDF includes a "Hereby Agreed" participant attestation section so
+  it reads like a friendly agreement rather than just a certificate.
 
 ## Tournament Templates
 
