@@ -119,10 +119,11 @@ Server/data rules:
   serverless filesystem at runtime.
 - `next.config.ts` also includes `node_modules/pdfkit/js/data/**/*` in output
   file tracing as extra defense.
-- The PDF layout intentionally uses a fixed two-page structure: agreement terms
-  on page one, then participant signatures plus the recorded picks schedule on
-  page two. Keep long text inside measured blocks so PDFKit does not auto-create
-  an unstyled white overflow page.
+- The PDF layout starts as a two-page structure: agreement terms on page one,
+  then participant signatures plus the recorded picks schedule on page two.
+  Signatures, recorded pick rows, and audit sections must paginate onto styled
+  parchment continuation pages instead of letting PDFKit auto-create an
+  unstyled white overflow page.
 
 Business rules:
 

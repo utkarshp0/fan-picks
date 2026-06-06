@@ -85,6 +85,9 @@ type DbPoolBet = {
   type: PredictionCategory["type"];
 };
 
+const CONTENT_BOTTOM_Y = 762;
+const CONTINUATION_TOP_Y = 88;
+
 export async function getPoolAgreement(
   accessToken: string,
   championshipId: string,
@@ -391,6 +394,7 @@ function drawRecordedPicksPage(
   agreement: PoolAgreementModel,
 ) {
   addPage(document);
+  let pageNumber = 2;
   document
     .font("Times-Bold")
     .fontSize(26)
@@ -408,33 +412,52 @@ function drawRecordedPicksPage(
     );
 
   const signatureStartY = 154;
-  for (const [index, participant] of agreement.participants.slice(0, 8).entries()) {
-    const x = 78 + (index % 2) * 230;
-    const boxY = signatureStartY + Math.floor(index / 2) * 48;
+  let y = signatureStartY;
+  let signatureColumn = 0;
+
+  for (const participant of agreement.participants) {
+    if (signatureColumn === 0 && y + 42 > CONTENT_BOTTOM_Y) {
+      footer(document, agreement, pageNumber);
+      addPage(document);
+      pageNumber += 1;
+      document
+        .font("Times-Bold")
+        .fontSize(18)
+        .fillColor("#17120d")
+        .text("PARTICIPANT SIGNATURES CONTINUED", 0, CONTINUATION_TOP_Y, {
+          align: "center",
+        });
+      y = 128;
+    }
+
+    const x = 78 + signatureColumn * 230;
     signatureBlock(
       document,
       x,
-      boxY,
+      y,
       participant.displayName,
       `@${participant.handle}`,
       agreement.isSealed ? "Agreed" : "Draft",
     );
+
+    if (signatureColumn === 1) {
+      signatureColumn = 0;
+      y += 48;
+    } else {
+      signatureColumn = 1;
+    }
   }
 
-  let y = signatureStartY + Math.ceil(Math.min(agreement.participants.length, 8) / 2) * 48 + 22;
+  if (signatureColumn === 1) {
+    y += 48;
+  }
+  y += 22;
 
-  if (agreement.participants.length > 8) {
-    fitText(
-      document,
-      `+ ${agreement.participants.length - 8} more participant(s) recorded in pool data`,
-      78,
-      y,
-      360,
-      8.5,
-      "Times-Italic",
-      "#3f3429",
-    );
-    y += 18;
+  if (y + 120 > CONTENT_BOTTOM_Y) {
+    footer(document, agreement, pageNumber);
+    addPage(document);
+    pageNumber += 1;
+    y = CONTINUATION_TOP_Y;
   }
 
   y = section(document, "8. RECORDED PICKS SCHEDULE", y);
@@ -453,6 +476,12 @@ function drawRecordedPicksPage(
   y = document.y + 14;
 
   if (!agreement.isSealed) {
+    if (y + 72 > CONTENT_BOTTOM_Y) {
+      footer(document, agreement, pageNumber);
+      addPage(document);
+      pageNumber += 1;
+      y = CONTINUATION_TOP_Y;
+    }
     y = paragraph(
       document,
       "Picks are hidden in draft agreements. The final sealed agreement will show every active participant's selected option for each bet after the pool lock deadline passes.",
@@ -467,10 +496,11 @@ function drawRecordedPicksPage(
       const rows = agreement.picks.filter((pick) => pick.betId === bet.id);
 
       for (const [rowIndex, row] of rows.entries()) {
-        if (y > 715) {
-          footer(document, agreement, document.bufferedPageRange().count + 1);
+        if (y + 24 > CONTENT_BOTTOM_Y) {
+          footer(document, agreement, pageNumber);
           addPage(document);
-          y = 96;
+          pageNumber += 1;
+          y = CONTINUATION_TOP_Y;
           tableHeader(document, y);
           y += 28;
         }
@@ -500,6 +530,13 @@ function drawRecordedPicksPage(
   }
 
   y += 16;
+  if (y + 148 > CONTENT_BOTTOM_Y) {
+    footer(document, agreement, pageNumber);
+    addPage(document);
+    pageNumber += 1;
+    y = CONTINUATION_TOP_Y;
+  }
+
   y = section(document, "9. AUDIT SUMMARY", y);
   const summary = agreement.auditSummary;
   const auditRows = [
@@ -532,7 +569,7 @@ function drawRecordedPicksPage(
       width: 365,
     });
 
-  footer(document, agreement, document.bufferedPageRange().count);
+  footer(document, agreement, pageNumber);
 }
 
 const friendlyClauses = [

@@ -38,6 +38,28 @@ const topFourBet: PredictionCategory = {
   type: "multi-team",
 };
 
+const goldenBootBet: PredictionCategory = {
+  choices: ["Player 1", "Player 2", "Player 3"],
+  id: "golden-boot",
+  name: "Golden Boot",
+  prompt: "Pick the top scorer.",
+  scoringNote: "Bragging rights.",
+  selectionCount: 1,
+  source: "default",
+  type: "choice",
+};
+
+const giantEliminatedBet: PredictionCategory = {
+  choices: ["Brazil", "Argentina", "France", "England", "Spain", "Germany"],
+  id: "first-giant-eliminated",
+  name: "First giant eliminated",
+  prompt: "Pick the first major team to go out.",
+  scoringNote: "Bragging rights.",
+  selectionCount: 1,
+  source: "default",
+  type: "choice",
+};
+
 function makeChampionship(
   overrides: Partial<Championship> = {},
 ): Championship {
@@ -162,6 +184,48 @@ function makeAuditEvent(type: AuditEvent["type"]): AuditEvent {
   };
 }
 
+function makeParticipant(index: number) {
+  return {
+    displayName: `Fan ${index}`,
+    handle: `fan-${index}`,
+    id: `participant-${index}`,
+    joinedAt: "2026-06-01T10:00:00.000Z",
+    lockedStatus: "locked" as const,
+    profileId: `profile-${index}`,
+    role: index === 1 ? ("creator" as const) : ("participant" as const),
+    submissionStatus: "submitted" as const,
+  };
+}
+
+function makeSubmissionForParticipant(index: number): PredictionSubmission {
+  const participant = makeParticipant(index);
+
+  return makeSubmission({
+    displayName: participant.displayName,
+    id: `submission-${index}`,
+    lockedVersionId: `version-${index}`,
+    participantId: participant.id,
+    profileId: participant.profileId,
+    versions: [
+      {
+        createdAt: "2026-06-05T10:00:00.000Z",
+        id: `version-${index}`,
+        picks: {
+          champion: [index % 2 === 0 ? "Brazil" : "Argentina"],
+          "first-giant-eliminated": [index % 2 === 0 ? "France" : "England"],
+          "golden-boot": [`Player ${((index - 1) % 3) + 1}`],
+          "top-4": ["Brazil", "Argentina", "France", "England"],
+        },
+        versionNumber: 1,
+      },
+    ],
+  });
+}
+
+function countPdfPages(pdf: Buffer) {
+  return (pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) ?? []).length;
+}
+
 describe("pool agreement rules", () => {
   test("creates a recognizable agreement id from invite code and lock date", () => {
     assert.equal(createPoolAgreementId("FP-ABC123", "2026-06-10"), "FPA-FP-ABC123-20260610");
@@ -277,8 +341,32 @@ describe("pool agreement rules", () => {
       tournamentName: "FIFA World Cup 2026",
     });
     const pdf = await createPoolAgreementPdf(agreement);
-    const pageCount = (pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) ?? []).length;
 
-    assert.equal(pageCount, 2);
+    assert.equal(countPdfPages(pdf), 2);
+  });
+
+  test("agreement PDF paginates signatures and recorded picks for larger pools", async () => {
+    process.env.FAN_PICKS_TEST_NOW = "2026-06-10T18:30:00.000Z";
+
+    const participants = Array.from({ length: 10 }, (_, index) =>
+      makeParticipant(index + 1),
+    );
+    const agreement = createAgreementPreviewModel({
+      championship: makeChampionship({
+        bets: [championBet, topFourBet, goldenBootBet, giantEliminatedBet],
+        creatorProfileId: participants[0].profileId,
+        participants,
+        predictions: participants.map((_, index) =>
+          makeSubmissionForParticipant(index + 1),
+        ),
+      }),
+      generatedAt: "2026-06-10T18:30:00.000Z",
+      tournamentName: "FIFA World Cup 2026",
+    });
+    const pdf = await createPoolAgreementPdf(agreement);
+
+    assert.equal(agreement.participants.length, 10);
+    assert.equal(agreement.picks.length, 40);
+    assert.ok(countPdfPages(pdf) >= 3);
   });
 });

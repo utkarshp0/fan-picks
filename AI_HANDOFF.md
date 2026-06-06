@@ -186,10 +186,12 @@ Important current behavior:
   user, verifies active pool membership, reloads the pool from Supabase with the
   service role, and builds the agreement model/PDF from that server snapshot.
   Do not build agreement PDFs from browser local storage or client cache.
-- The Pool Agreement PDF uses a deliberate two-page layout: page one is the
-  agreement terms, page two starts with participant signatures and then shows
-  recorded picks/audit summary. Avoid letting PDFKit text flow past the
-  parchment border, because that can auto-create a blank white overflow page.
+- The Pool Agreement PDF starts with a deliberate two-page layout: page one is
+  the agreement terms, page two starts with participant signatures and then
+  shows recorded picks/audit summary. Larger pools must paginate signatures,
+  recorded pick rows, and audit sections onto styled parchment continuation
+  pages. Avoid letting PDFKit text flow past the parchment border, because that
+  can auto-create a blank white overflow page.
 - Sports data from Big Balls Data is also cached in Supabase. The browser reads
   cached `sports_*` rows and never calls the provider directly.
 
@@ -646,6 +648,9 @@ Keep this short and newest-first. Record changes that affect future AI context.
   font metric files from the serverless filesystem at runtime.
 - 2026-06-06: Fixed agreement PDF pagination by moving participant signatures to
   the second parchment page and adding a page-count regression test.
+- 2026-06-07: Hardened agreement PDF pagination for larger pools so every
+  participant signature and recorded pick row continues onto styled parchment
+  pages when content exceeds one page.
 - 2026-06-04: Added separate Match Picks MVP with one fixture plus one question
   per room, next-three-days fixture creation, IST lock wording, two-hours-before
   kickoff server lock, invite/join, save, audit, and result scoring.
