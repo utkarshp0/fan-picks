@@ -1,4 +1,5 @@
 import type { SportsFixture, SportsTeam, SportsTournament } from "@/types/sports-data";
+import { isPlaceholderSportsTeamName } from "@/lib/sports-team-utils";
 
 const defaultBaseUrl = "https://api.bigballsdata.com";
 const provider = "big-balls-data" as const;
@@ -212,11 +213,20 @@ export function normalizeBigBallsMatches(
       return [];
     }
 
-    const homeTeam = toSportsTeam(config.tournamentId, home);
-    const awayTeam = toSportsTeam(config.tournamentId, away);
+    const homeTeam = isPlaceholderSportsTeamName(home.name)
+      ? null
+      : toSportsTeam(config.tournamentId, home);
+    const awayTeam = isPlaceholderSportsTeamName(away.name)
+      ? null
+      : toSportsTeam(config.tournamentId, away);
 
-    teamsById.set(homeTeam.id, homeTeam);
-    teamsById.set(awayTeam.id, awayTeam);
+    if (homeTeam) {
+      teamsById.set(homeTeam.id, homeTeam);
+    }
+
+    if (awayTeam) {
+      teamsById.set(awayTeam.id, awayTeam);
+    }
 
     return [
       {
@@ -225,10 +235,10 @@ export function normalizeBigBallsMatches(
         providerMatchId,
         sport: match.sport ?? "football",
         league: match.league ?? config.league,
-        homeTeamName: homeTeam.name,
-        awayTeamName: awayTeam.name,
-        homeTeamId: homeTeam.id,
-        awayTeamId: awayTeam.id,
+        homeTeamName: home.name,
+        awayTeamName: away.name,
+        homeTeamId: homeTeam?.id,
+        awayTeamId: awayTeam?.id,
         kickoffUtc:
           match.kickoff_utc ??
           match.kickoffUtc ??

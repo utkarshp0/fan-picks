@@ -1,6 +1,7 @@
 import type { ChampionshipTemplate } from "@/types/championship";
 import type { SportsTournamentSnapshot, SportsSyncResult } from "@/types/sports-data";
 import { createSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
+import { filterRealSportsTeamNames } from "@/lib/sports-team-utils";
 
 export async function fetchSportsTournaments() {
   const response = await fetch("/api/sports/tournaments", {
@@ -59,8 +60,9 @@ export function enrichTemplatesWithSportsData(
     const sportsTournament = sportsTournaments.find(
       (tournament) => tournament.id === template.id,
     );
-    const teamChoices =
-      sportsTournament?.teams.map((team) => team.name).filter(Boolean) ?? [];
+    const teamChoices = filterRealSportsTeamNames(
+      sportsTournament?.teams.map((team) => team.name) ?? [],
+    );
 
     if (!sportsTournament || teamChoices.length === 0) {
       return template;

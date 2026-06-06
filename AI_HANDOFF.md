@@ -194,6 +194,10 @@ Important current behavior:
   can auto-create a blank white overflow page.
 - Sports data from Big Balls Data is also cached in Supabase. The browser reads
   cached `sports_*` rows and never calls the provider directly.
+- Provider placeholder teams from future knockout fixtures, such as
+  `Group E Winner`, `Group B 2nd Place`, or `THIRD PLACE GROUP ...`, are
+  filtered by `src/lib/sports-team-utils.ts`. They can remain as fixture labels
+  but must not become selectable pool prediction choices.
 
 Relevant files:
 

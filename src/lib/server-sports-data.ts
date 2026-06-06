@@ -1,4 +1,5 @@
 import { createSupabaseServiceClient, isSupabaseServerConfigured } from "@/lib/supabase-server";
+import { isPlaceholderSportsTeamName } from "@/lib/sports-team-utils";
 import type {
   NormalizedSportsSync,
   SportsLeagueSyncConfig,
@@ -168,6 +169,10 @@ async function fetchSportsTeamsByTournamentId(tournamentIds: string[]) {
   }
 
   for (const row of data as DbSportsTeam[]) {
+    if (isPlaceholderSportsTeamName(row.name)) {
+      continue;
+    }
+
     const current = teamsByTournamentId.get(row.tournament_id) ?? [];
     current.push(mapSportsTeamFromDb(row));
     teamsByTournamentId.set(row.tournament_id, current);

@@ -1,5 +1,10 @@
 import { createSupabaseServiceClient, isSupabaseServerConfigured } from "@/lib/supabase-server";
-import type { Championship, ChampionshipParticipant } from "@/types/championship";
+import { filterRealSportsTeamNames } from "@/lib/sports-team-utils";
+import type {
+  Championship,
+  ChampionshipParticipant,
+  PredictionCategory,
+} from "@/types/championship";
 import type { AnonymousProfile } from "@/types/profile";
 
 type ActionResult<T = unknown> =
@@ -210,7 +215,7 @@ async function insertPoolBets(championship: Championship): Promise<ActionResult>
       prompt: bet.prompt,
       selection_count: bet.selectionCount,
       scoring_note: bet.scoringNote,
-      choices: bet.choices ?? null,
+      choices: sanitizeBetChoices(bet) ?? null,
       source: bet.source,
       sort_order: index,
     })),
@@ -261,4 +266,16 @@ function getCreatorParticipant(championship: Championship, userId: string) {
     (participant) =>
       participant.profileId === userId && participant.role === "creator",
   );
+}
+
+function sanitizeBetChoices(bet: PredictionCategory) {
+  if (!bet.choices) {
+    return undefined;
+  }
+
+  if (bet.type === "single-team" || bet.type === "multi-team") {
+    return filterRealSportsTeamNames(bet.choices);
+  }
+
+  return bet.choices.map((choice) => choice.trim()).filter(Boolean);
 }

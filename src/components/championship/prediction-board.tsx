@@ -21,6 +21,7 @@ import {
   unlockPrediction,
 } from "@/lib/championship-store";
 import { fetchSportsTournaments } from "@/lib/sports-data-client";
+import { filterRealSportsTeamNames } from "@/lib/sports-team-utils";
 import type {
   Championship,
   PredictionCategory,
@@ -67,7 +68,9 @@ export function PredictionBoard({ championship }: PredictionBoardProps) {
 
         if (isMounted) {
           setSportsTeamOptions(
-            tournament?.teams.map((team) => team.name).filter(Boolean) ?? [],
+            filterRealSportsTeamNames(
+              tournament?.teams.map((team) => team.name) ?? [],
+            ),
           );
         }
       })
@@ -332,7 +335,7 @@ function BetInput({
         key={`${bet.id}:${defaultValues.join("|")}`}
         maxSelections={bet.selectionCount}
         name={bet.id}
-        options={bet.choices?.length ? bet.choices : teamOptions}
+        options={getBetOptions(bet, teamOptions)}
       />
     );
   }
@@ -345,7 +348,7 @@ function BetInput({
         name={bet.id}
       >
         <option value="">Select</option>
-        {(bet.choices?.length ? bet.choices : teamOptions).map((option) => (
+        {getBetOptions(bet, teamOptions).map((option) => (
           <option key={option} value={option}>
             {option}
           </option>
@@ -376,6 +379,16 @@ function BetInput({
       type="text"
     />
   );
+}
+
+function getBetOptions(bet: PredictionCategory, teamOptions: string[]) {
+  if (bet.type === "single-team" || bet.type === "multi-team") {
+    const cleanChoices = filterRealSportsTeamNames(bet.choices ?? []);
+
+    return cleanChoices.length ? cleanChoices : teamOptions;
+  }
+
+  return bet.choices?.filter(Boolean) ?? teamOptions;
 }
 
 function PredictionVisibility({ championship }: PredictionBoardProps) {

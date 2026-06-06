@@ -165,6 +165,10 @@ Data is integrated as a server-side source and cached in Supabase:
   to the browser.
 - `src/lib/sports-data-client.ts` enriches template defaults with synced team
   choices.
+- `src/lib/sports-team-utils.ts` filters provider placeholder names such as
+  `Group E Winner`, `Group B 2nd Place`, and `THIRD PLACE GROUP ...` out of
+  prediction choices. Those placeholders may remain in future fixtures, but
+  they must not be offered as selectable teams for pool bets.
 
 Create Pool automatically checks cached tournament data. If the selected
 tournament is missing teams, the app syncs in the background after login. Once

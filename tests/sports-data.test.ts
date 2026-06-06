@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { normalizeBigBallsMatches } from "../src/lib/big-balls-data";
 import { enrichTemplatesWithSportsData } from "../src/lib/sports-data-client";
 import { worldCup2026Template } from "../src/data/templates";
+import { filterRealSportsTeamNames } from "../src/lib/sports-team-utils";
 
 describe("Big Balls Data sports sync", () => {
   it("normalizes matches into tournament teams and fixtures", () => {
@@ -84,6 +85,38 @@ describe("Big Balls Data sports sync", () => {
     );
   });
 
+  it("keeps knockout placeholder names out of synced tournament team choices", () => {
+    const snapshot = normalizeBigBallsMatches(
+      {
+        tournamentId: "fifa-world-cup-2026",
+        league: "wc2026",
+      },
+      [
+        {
+          match_id: "match-1",
+          home_team: { id: "mex", name: "Mexico" },
+          away_team: { id: "group-e-winner", name: "Group E Winner" },
+          scheduled_at: "2026-06-11T19:00:00Z",
+          status: "upcoming",
+        },
+        {
+          match_id: "match-2",
+          home_team: { id: "third-place", name: "THIRD PLACE GROUP C/D/F/G/H" },
+          away_team: { id: "fra", name: "France" },
+          scheduled_at: "2026-06-12T19:00:00Z",
+          status: "upcoming",
+        },
+      ],
+      "2026-06-03T10:00:00.000Z",
+    );
+
+    assert.equal(snapshot.fixtures.length, 2);
+    assert.deepEqual(
+      snapshot.teams.map((team) => team.name),
+      ["France", "Mexico"],
+    );
+  });
+
   it("injects synced team choices into team-based default bets", () => {
     const [template] = enrichTemplatesWithSportsData(
       [worldCup2026Template],
@@ -112,6 +145,12 @@ describe("Big Balls Data sports sync", () => {
               providerTeamId: "usa",
               name: "USA",
             },
+            {
+              id: "fifa-world-cup-2026:group-b-2nd-place",
+              tournamentId: "fifa-world-cup-2026",
+              providerTeamId: "group-b-2nd-place",
+              name: "Group B 2nd Place",
+            },
           ],
           fixtures: [],
         },
@@ -125,6 +164,20 @@ describe("Big Balls Data sports sync", () => {
     assert.equal(
       template.defaultBets.find((bet) => bet.id === "golden-boot")?.choices,
       undefined,
+    );
+  });
+
+  it("filters placeholder team names from existing pool bet choices", () => {
+    assert.deepEqual(
+      filterRealSportsTeamNames([
+        "Argentina",
+        "Group A 2nd Place",
+        "GROUP I SECOND PLACE",
+        "THIRD PLACE GROUP A/B/C/D/F",
+        "France",
+        "France",
+      ]),
+      ["Argentina", "France"],
     );
   });
 });

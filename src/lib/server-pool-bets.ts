@@ -1,5 +1,6 @@
 import { isPastPoolLockDate } from "@/lib/app-clock";
 import { createSupabaseServiceClient } from "@/lib/supabase-server";
+import { filterRealSportsTeamNames } from "@/lib/sports-team-utils";
 import type { AuditEvent, PredictionCategory } from "@/types/championship";
 
 type PoolBetSyncResult =
@@ -108,7 +109,7 @@ export async function syncPoolBetsOnServer(
       prompt: bet.prompt,
       selection_count: bet.selectionCount,
       scoring_note: bet.scoringNote,
-      choices: bet.choices ?? null,
+      choices: sanitizeBetChoices(bet) ?? null,
       source: bet.source,
       sort_order: index,
     })),
@@ -177,9 +178,12 @@ function normalizeBets(input: unknown) {
       prompt: String(item.prompt ?? item.name),
       selectionCount: Math.max(1, Number(item.selectionCount) || 1),
       scoringNote: String(item.scoringNote ?? ""),
-      choices: Array.isArray(item.choices)
-        ? item.choices.map(String).filter(Boolean)
-        : undefined,
+      choices: sanitizeBetChoices({
+        choices: Array.isArray(item.choices)
+          ? item.choices.map(String).filter(Boolean)
+          : undefined,
+        type: item.type as PredictionCategory["type"],
+      }),
       source: item.source === "default" ? "default" : "custom",
     }));
 }
@@ -212,4 +216,18 @@ function normalizeEvents(input: unknown) {
 
 function isPastLockDate(value: string) {
   return isPastPoolLockDate(value);
+}
+
+function sanitizeBetChoices(
+  bet: Pick<PredictionCategory, "choices" | "type">,
+) {
+  if (!bet.choices) {
+    return undefined;
+  }
+
+  if (bet.type === "single-team" || bet.type === "multi-team") {
+    return filterRealSportsTeamNames(bet.choices);
+  }
+
+  return bet.choices.map((choice) => choice.trim()).filter(Boolean);
 }
