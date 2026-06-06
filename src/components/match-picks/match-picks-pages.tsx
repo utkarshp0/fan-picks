@@ -7,7 +7,6 @@ import {
   Clipboard,
   Clock3,
   Copy,
-  ExternalLink,
   LogOut,
   ListChecks,
   Lock,
@@ -883,8 +882,6 @@ function RoomCard({
   onLeave: (roomId: string) => void;
   room: MatchPickRoom;
 }) {
-  const invitePath = getMatchPickInvitePath(room.inviteCode);
-
   return (
     <div className="grid gap-3 rounded-lg border border-border bg-surface-raised p-4">
       <div className="flex items-start justify-between gap-3">
@@ -895,19 +892,12 @@ function RoomCard({
         </div>
         <BadgeText>{room.inviteCode}</BadgeText>
       </div>
-      <div className={cn("grid gap-2", canLeave ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+      <div className={cn("grid gap-2", canLeave && "sm:grid-cols-2")}>
         <Link
           className="inline-flex min-h-10 items-center justify-center rounded-md bg-accent px-3 text-sm font-semibold text-accent-foreground"
           href={`/match-picks/${room.id}/picks`}
         >
           Open
-        </Link>
-        <Link
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-semibold text-foreground hover:border-accent"
-          href={invitePath}
-        >
-          <ExternalLink aria-hidden className="h-4 w-4" />
-          Invite link
         </Link>
         {canLeave ? (
           <Button
