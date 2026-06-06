@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { GuestSessionProvider } from "@/components/auth/guest-session-provider";
+import { getAppBaseUrl } from "@/lib/share-metadata";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,6 +23,7 @@ export const metadata: Metadata = {
   },
   title: "Fan Picks",
   description: "For fans who back their opinions.",
+  metadataBase: new URL(getAppBaseUrl()),
   formatDetection: {
     telephone: false,
   },

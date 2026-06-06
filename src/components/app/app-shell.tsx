@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 
@@ -31,6 +31,7 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   const { profile, logout } = useGuestSession();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState("");
   const visiblePendingHref = pendingHref === pathname ? "" : pendingHref;
@@ -111,7 +112,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   if (!profile) {
-    return <LoginScreen />;
+    return <LoginScreen inviteNotice={getInviteNotice(pathname, searchParams.get("code"))} />;
   }
 
   return (
@@ -327,4 +328,20 @@ function getChampionshipIdFromPath(pathname: string) {
   }
 
   return match?.[1];
+}
+
+function getInviteNotice(pathname: string, code: string | null) {
+  if (!code) {
+    return undefined;
+  }
+
+  if (pathname === "/championships/join") {
+    return "You opened a pool invite. Login or sign up, then Fan Picks will join you with the invite code already filled in.";
+  }
+
+  if (pathname === "/match-picks/join") {
+    return "You opened a Match Pick invite. Login or sign up, then Fan Picks will join you with the invite code already filled in.";
+  }
+
+  return undefined;
 }

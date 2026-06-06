@@ -58,6 +58,16 @@ It owns UI-facing actions:
 - `addPoolBet`
 - `removePoolBet`
 
+Pool invite helpers also live in `src/lib/championship-store.ts`:
+
+- `getPoolInvitePath`
+- `createPoolInviteMessage`
+
+Pool invite links use `/championships/join?code=...`. The join page receives
+the code from the route, pre-fills the form, and auto-joins logged-in users.
+If a logged-out user opens the link, `AppShell` shows an invite-aware
+login/signup message before the join page continues after auth.
+
 The Supabase adapter is `src/lib/pool-supabase.ts`.
 
 It owns database reads/writes:
@@ -182,7 +192,8 @@ Behavior:
 - Room invites use a shareable `/match-picks/join?code=...` link. The room
   header exposes the raw code, full link, ready-to-copy message, and native
   share action where supported. The Join page prefills from the `code` query
-  parameter.
+  parameter and auto-joins logged-in users. Logged-out users see an
+  invite-aware auth message first.
 - Winner and exact-score labels use actual team names, never Home/Away wording
   in the UI.
 - Default question types are Winner, Exact score, and Both teams score.
@@ -239,6 +250,16 @@ Lock-related audit types:
 
 - `prediction_locked`
 - `prediction_unlocked`
+
+## Share Previews
+
+Pool and Match Pick join pages define Open Graph and Twitter metadata for rich
+platform previews. Both use `/api/share-image?kind=pool|match`, implemented in
+`src/app/api/share-image/route.tsx`, to generate a branded 1200x630 image for
+WhatsApp, X/Twitter, Slack, and similar link unfurlers.
+
+`src/lib/share-metadata.ts` resolves the app base URL from
+`NEXT_PUBLIC_APP_URL`, `VERCEL_URL`, or `https://fan-picks.vercel.app`.
 
 ## UI Interaction Pattern
 

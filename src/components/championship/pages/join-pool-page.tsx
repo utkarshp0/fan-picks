@@ -6,7 +6,11 @@ import { AppShell } from "@/components/app/app-shell";
 import { JoinChampionshipPanel } from "@/components/championship/join-championship-panel";
 import type { Championship } from "@/types/championship";
 
-export function JoinPoolPage() {
+export function JoinPoolPage({
+  initialInviteCode = "",
+}: {
+  initialInviteCode?: string;
+}) {
   const router = useRouter();
 
   function openJoinedPool(championship: Championship) {
@@ -26,7 +30,11 @@ export function JoinPoolPage() {
             Bets pages.
           </p>
         </section>
-        <JoinChampionshipPanel onJoined={openJoinedPool} />
+        <JoinChampionshipPanel
+          autoJoin={Boolean(initialInviteCode)}
+          defaultInviteCode={initialInviteCode}
+          onJoined={openJoinedPool}
+        />
       </div>
     </AppShell>
   );

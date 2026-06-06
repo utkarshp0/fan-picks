@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LogIn, QrCode } from "lucide-react";
 
 import { useGuestSession } from "@/components/auth/guest-session-provider";
@@ -10,39 +10,34 @@ import { joinChampionshipByCode } from "@/lib/championship-store";
 import type { Championship } from "@/types/championship";
 
 type JoinChampionshipPanelProps = {
+  autoJoin?: boolean;
   defaultInviteCode?: string;
   onJoined?: (championship: Championship) => void;
 };
 
 export function JoinChampionshipPanel({
+  autoJoin = false,
   defaultInviteCode = "",
   onJoined,
 }: JoinChampionshipPanelProps) {
   const { profile } = useGuestSession();
+  const hasAutoJoined = useRef(false);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<"success" | "warning">(
     "success",
   );
   const [isJoining, setIsJoining] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
+  const joinWithCode = useCallback(async (inviteCode: string) => {
     if (!profile) {
-      setMessage("Enter your name before joining.");
+      setMessage("Login or sign up before joining this pool.");
       setMessageTone("warning");
       return;
     }
 
     setIsJoining(true);
     try {
-      const formData = new FormData(event.currentTarget);
-      const result = await joinChampionshipByCode(
-        {
-          inviteCode: String(formData.get("inviteCode") ?? ""),
-        },
-        profile,
-      );
+      const result = await joinChampionshipByCode({ inviteCode }, profile);
 
       setMessage(result.message);
       setMessageTone(result.status === "not_found" ? "warning" : "success");
@@ -53,6 +48,22 @@ export function JoinChampionshipPanel({
     } finally {
       setIsJoining(false);
     }
+  }, [onJoined, profile]);
+
+  useEffect(() => {
+    if (!autoJoin || !defaultInviteCode || !profile || hasAutoJoined.current) {
+      return;
+    }
+
+    hasAutoJoined.current = true;
+    void joinWithCode(defaultInviteCode);
+  }, [autoJoin, defaultInviteCode, joinWithCode, profile]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    await joinWithCode(String(formData.get("inviteCode") ?? ""));
   }
 
   return (
@@ -96,7 +107,7 @@ export function JoinChampionshipPanel({
           type="submit"
         >
           <LogIn aria-hidden className="h-4 w-4" />
-          Join pool
+          {isJoining && autoJoin ? "Joining from invite" : "Join pool"}
         </Button>
       </form>
 

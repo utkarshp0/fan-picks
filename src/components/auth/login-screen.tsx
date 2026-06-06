@@ -6,7 +6,11 @@ import { LogIn, Trophy, UserPlus } from "lucide-react";
 import { useGuestSession } from "@/components/auth/guest-session-provider";
 import { Button } from "@/components/ui/button";
 
-export function LoginScreen() {
+export function LoginScreen({
+  inviteNotice,
+}: {
+  inviteNotice?: string;
+}) {
   const { signIn, signUp } = useGuestSession();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [message, setMessage] = useState("");
@@ -46,6 +50,11 @@ export function LoginScreen() {
             ? "Login with your username and password to get back to your pools."
             : "Create a simple Fan Picks account with a username and password."}
         </p>
+        {inviteNotice ? (
+          <p className="mt-4 rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm leading-6 text-accent">
+            {inviteNotice}
+          </p>
+        ) : null}
         <div className="mt-5 grid grid-cols-2 rounded-md border border-border bg-background p-1">
           <button
             className={`min-h-10 rounded px-3 text-sm font-semibold transition-colors ${

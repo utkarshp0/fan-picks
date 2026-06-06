@@ -3,9 +3,11 @@ import { describe, test } from "node:test";
 
 import {
   areBetsEqual,
+  createPoolInviteMessage,
   createUniqueBetId,
   dedupeBets,
   getBetEditBlockMessage,
+  getPoolInvitePath,
   getPredictionFieldChangeEvents,
   normalizeInviteCode,
   omitPick,
@@ -359,6 +361,29 @@ describe("normalizeInviteCode", () => {
 
   test("handles empty string", () => {
     assert.equal(normalizeInviteCode(""), "");
+  });
+});
+
+describe("pool invite links", () => {
+  test("builds a shareable pool invite path", () => {
+    assert.equal(
+      getPoolInvitePath("FP-ABC 123"),
+      "/championships/join?code=FP-ABC%20123",
+    );
+  });
+
+  test("builds a friendly pool invite message", () => {
+    const message = createPoolInviteMessage({
+      inviteCode: "FP-ABC123",
+      inviteUrl: "https://fan-picks.vercel.app/championships/join?code=FP-ABC123",
+      lockLabel: "10 Jun 2026",
+      poolName: "World Cup Office Pool",
+    });
+
+    assert.match(message, /Join my Fan Picks pool: World Cup Office Pool/);
+    assert.match(message, /Make your picks before 10 Jun 2026/);
+    assert.match(message, /Invite code: FP-ABC123/);
+    assert.match(message, /https:\/\/fan-picks\.vercel\.app\/championships\/join\?code=FP-ABC123/);
   });
 });
 

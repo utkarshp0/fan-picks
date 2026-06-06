@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { announceRouteStart } from "@/components/app/app-shell";
 import { AppShell } from "@/components/app/app-shell";
@@ -299,15 +299,16 @@ export function MatchPickJoinPage({
   initialInviteCode?: string;
 }) {
   const router = useRouter();
+  const hasAutoJoined = useRef(false);
   const [inviteCode, setInviteCode] = useState(initialInviteCode.toUpperCase());
   const [isJoining, setIsJoining] = useState(false);
   const [message, setMessage] = useState("");
 
-  async function handleJoin() {
+  const joinWithCode = useCallback(async (code: string) => {
     setIsJoining(true);
     setMessage("");
 
-    const result = await joinMatchPickRoom(inviteCode);
+    const result = await joinMatchPickRoom(code);
 
     setIsJoining(false);
 
@@ -319,6 +320,19 @@ export function MatchPickJoinPage({
     const href = `/match-picks/${result.room.id}/picks`;
     announceRouteStart(href);
     router.push(href);
+  }, [router]);
+
+  useEffect(() => {
+    if (!initialInviteCode || hasAutoJoined.current) {
+      return;
+    }
+
+    hasAutoJoined.current = true;
+    void joinWithCode(initialInviteCode);
+  }, [initialInviteCode, joinWithCode]);
+
+  async function handleJoin() {
+    await joinWithCode(inviteCode);
   }
 
   return (

@@ -164,6 +164,9 @@ Important current behavior:
 - It no longer auto-publishes local pools to Supabase.
 - Pool creation, joining, leaving, custom bets, audit events, prediction drafts,
   prediction versions, locks, and fingerprints are persisted to Supabase.
+- Pool invite links use `/championships/join?code=...`. Logged-in users who
+  open an invite link auto-join the pool. Logged-out users see an invite-aware
+  login/signup message, then the join page continues with the code after auth.
 - Prediction lock/unlock is enforced by server routes, not direct browser
   updates, so the authenticated user and lock date can be validated centrally.
 - Sports data from Big Balls Data is also cached in Supabase. The browser reads
@@ -308,7 +311,11 @@ Product rules:
 - Match Pick room headers show an invite panel with a shareable
   `/match-picks/join?code=...` link, the raw invite code, a ready-to-copy
   message, and native share support where available. The Join page prefills the
-  invite code from the `code` query parameter.
+  invite code from the `code` query parameter and auto-joins logged-in users.
+  Logged-out users see an invite-aware login/signup message before continuing.
+- Pool and Match Pick join links emit Open Graph/Twitter metadata with a
+  generated branded preview image from `/api/share-image`, so platforms such as
+  WhatsApp and X/Twitter can render a rich card instead of only a plain URL.
 - Results are scored from synced `sports_fixtures`, not user input.
 - Winner copy should be light and funny, for example:
   `Nobody got this one. Football chose chaos.`
@@ -498,6 +505,10 @@ Quick Supabase Auth smoke test from Node can use the anon key and
 
 Keep this short and newest-first. Record changes that affect future AI context.
 
+- 2026-06-06: Added rich invite links for Pools and Match Picks with
+  `/championships/join?code=...` and `/match-picks/join?code=...`, auto-join
+  for logged-in users, invite-aware auth messaging, Open Graph/Twitter metadata,
+  and generated branded share preview images.
 - 2026-06-06: Added friendlier Match Picks invites with shareable join links,
   join-code query prefill, ready-to-copy invite messages, and native share
   fallback behavior.

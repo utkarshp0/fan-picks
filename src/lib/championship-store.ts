@@ -981,6 +981,29 @@ export function normalizeInviteCode(value: string) {
   return value.trim().toUpperCase().replace(/\s+/g, "");
 }
 
+export function getPoolInvitePath(inviteCode: string) {
+  return `/championships/join?code=${encodeURIComponent(inviteCode)}`;
+}
+
+export function createPoolInviteMessage({
+  inviteCode,
+  inviteUrl,
+  lockLabel,
+  poolName,
+}: {
+  inviteCode: string;
+  inviteUrl: string;
+  lockLabel: string;
+  poolName: string;
+}) {
+  return [
+    `Join my Fan Picks pool: ${poolName}`,
+    `Make your picks before ${lockLabel}.`,
+    `Invite code: ${inviteCode}`,
+    inviteUrl,
+  ].join("\n");
+}
+
 function isPastLockDate(value: string) {
   if (!value) {
     return false;
