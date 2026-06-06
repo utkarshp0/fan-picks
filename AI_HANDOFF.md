@@ -41,7 +41,9 @@ Users should be able to:
 8. Reopen accidentally locked picks before the lock date.
 9. See transparent audit events for pool creation, joins, leaves, bet changes,
    prediction field changes, draft saves, and locked picks.
-10. Create separate Match Pick rooms for one fixture and one prediction
+10. Preview and download a funny parchment-style Pool Agreement that seals
+    after the lock date and records all active participants' final picks.
+11. Create separate Match Pick rooms for one fixture and one prediction
     question, invite friends, and reveal correct users after the fixture result.
 
 Avoid adding casino, odds, money, payout, wager, or sportsbook language.
@@ -69,6 +71,7 @@ Avoid adding casino, odds, money, payout, wager, or sportsbook language.
   - `/championships/[championshipId]/participants`
   - `/championships/[championshipId]/audit`
   - `/championships/[championshipId]/rules`
+  - `/championships/[championshipId]/agreement`
 - Current Pool nav appears only inside a pool route.
 - Account control belongs at the top of the sidebar and should read like
   profile/login/logout, not "guest profile" or "change user".
@@ -178,6 +181,11 @@ Important current behavior:
   login/signup message, then the join page continues with the code after auth.
 - Prediction lock/unlock is enforced by server routes, not direct browser
   updates, so the authenticated user and lock date can be validated centrally.
+- Pool Agreement preview/PDF is also server-derived. The browser calls
+  `GET /api/pools/[championshipId]/agreement`, which validates the Supabase Auth
+  user, verifies active pool membership, reloads the pool from Supabase with the
+  service role, and builds the agreement model/PDF from that server snapshot.
+  Do not build agreement PDFs from browser local storage or client cache.
 - Sports data from Big Balls Data is also cached in Supabase. The browser reads
   cached `sports_*` rows and never calls the provider directly.
 
@@ -186,6 +194,8 @@ Relevant files:
 - `src/lib/app-clock.ts`
 - `src/lib/championship-store.ts`
 - `src/lib/pool-supabase.ts`
+- `src/lib/pool-agreement.ts`
+- `src/lib/server-pool-agreement.ts`
 - `src/lib/server-pools.ts`
 - `src/lib/server-prediction-locks.ts`
 - `src/lib/server-match-picks.ts`
@@ -230,6 +240,46 @@ Relevant files:
 - Bet list sync goes through `/api/pool-bets/sync`, which uses the
   service role after validating the Supabase Auth user is the pool creator.
 - If server sync fails, the app rolls back the optimistic local change.
+
+## Pool Agreement
+
+The Pool Agreement is a friendly, parchment-style downloadable PDF for each
+pool. It is intentionally not a legal contract; it is a funny receipt for
+bragging rights and transparent picks.
+
+Routes and files:
+
+- UI route: `/championships/[championshipId]/agreement`
+- API route: `GET /api/pools/[championshipId]/agreement`
+- JSON preview: `GET /api/pools/[championshipId]/agreement`
+- PDF download: `GET /api/pools/[championshipId]/agreement?format=pdf`
+- Pure rules/model: `src/lib/pool-agreement.ts`
+- Server fetch/PDF renderer: `src/lib/server-pool-agreement.ts`
+- Client fetch/download helper: `src/lib/pool-agreement-client.ts`
+- Tests: `tests/pool-agreement.test.ts`
+
+Rules:
+
+- Only active pool participants can preview or download the agreement.
+- The agreement always has a visible preview page.
+- Before the pool lock deadline it is `draft`.
+- Draft agreements show pool details, participants, clauses, identifiers, and
+  audit summary, but do not reveal any participant picks.
+- After the pool lock deadline it is `sealed`.
+- Sealed agreements include every active participant's selected option(s) per
+  bet.
+- If a participant locked picks before the deadline, the locked version is used.
+- If a participant never manually locked but has a saved draft when the deadline
+  passes, the latest saved draft is used as final.
+- Left participants can appear in the Parties section as `left` for
+  transparency, but their picks are not included in the recorded picks schedule.
+- Pool lock dates are interpreted as end-of-day IST through `app-clock.ts`.
+- Agreement identity includes:
+  - Invite code
+  - Agreement ID: `FPA-{inviteCode}-{lockDate YYYYMMDD}`
+  - SHA-256 fingerprint over the stable agreement snapshot
+- The PDF includes an audit summary, not the full audit event log. The full log
+  remains on the Audit Log page.
 
 ## Sports Data Integration
 
@@ -569,6 +619,11 @@ Keep this short and newest-first. Record changes that affect future AI context.
   `POST /api/match-picks/[roomId]/leave`, sidebar/list and room-header Leave
   buttons, soft-leave participant persistence, and `participant_left` audit
   events.
+- 2026-06-06: Added Pool Agreement preview/download with a parchment-style PDF,
+  server-only Supabase source data, draft/sealed rules, Agreement ID/fingerprint,
+  recorded picks schedule after lock, audit summary, route
+  `/championships/[championshipId]/agreement`, API
+  `/api/pools/[championshipId]/agreement`, and unit tests.
 - 2026-06-04: Added separate Match Picks MVP with one fixture plus one question
   per room, next-three-days fixture creation, IST lock wording, two-hours-before
   kickoff server lock, invite/join, save, audit, and result scoring.

@@ -1,7 +1,18 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { ListPlus, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
+import {
+  Download,
+  FileText,
+  ListPlus,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  ScrollText,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 
 import { AuditTimeline } from "@/components/championship/audit-timeline";
 import { useGuestSession } from "@/components/auth/guest-session-provider";
@@ -11,7 +22,15 @@ import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { getChampionshipTemplate } from "@/data/templates";
 import { savePoolBets } from "@/lib/championship-store";
+import {
+  downloadPoolAgreementPdf,
+  fetchPoolAgreement,
+} from "@/lib/pool-agreement-client";
 import type { BetType, Championship, PredictionCategory } from "@/types/championship";
+import type {
+  PoolAgreementModel,
+  PoolAgreementPickRow,
+} from "@/types/pool-agreement";
 
 export function PredictionsRoute({ championship }: { championship: Championship }) {
   return <PredictionBoard championship={championship} />;
@@ -67,6 +86,354 @@ export function ParticipantsRoute({
 export function AuditRoute({ championship }: { championship: Championship }) {
   return <AuditTimeline championship={championship} />;
 }
+
+export function AgreementRoute({
+  championship,
+}: {
+  championship: Championship;
+}) {
+  const [agreement, setAgreement] = useState<PoolAgreementModel | null>(null);
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  async function loadAgreement() {
+    setIsLoading(true);
+    const result = await fetchPoolAgreement(championship.id);
+
+    if (result.ok) {
+      setAgreement(result.agreement);
+      setMessage("");
+    } else {
+      setAgreement(null);
+      setMessage(result.message);
+    }
+
+    setIsLoading(false);
+  }
+
+  async function handleDownload() {
+    setIsDownloading(true);
+    const result = await downloadPoolAgreementPdf(championship.id);
+    setMessage(result.message);
+    setIsDownloading(false);
+  }
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    void fetchPoolAgreement(championship.id).then((result) => {
+      if (isCancelled) {
+        return;
+      }
+
+      if (result.ok) {
+        setAgreement(result.agreement);
+        setMessage("");
+      } else {
+        setAgreement(null);
+        setMessage(result.message);
+      }
+
+      setIsLoading(false);
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [championship.id]);
+
+  return (
+    <div className="grid gap-4">
+      <section className="rounded-lg border border-border bg-surface p-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <SectionHeading
+            description="Preview the friendly agreement anytime. After the pool lock date, it seals with everyone’s recorded picks from Supabase."
+            title="Pool Agreement"
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={isLoading}
+              loading={isLoading}
+              loadingLabel="Refreshing"
+              onClick={() => void loadAgreement()}
+              variant="secondary"
+            >
+              <RefreshCw aria-hidden className="h-4 w-4" />
+              Refresh preview
+            </Button>
+            <Button
+              disabled={!agreement || isDownloading}
+              loading={isDownloading}
+              loadingLabel="Preparing PDF"
+              onClick={() => void handleDownload()}
+            >
+              <Download aria-hidden className="h-4 w-4" />
+              Download PDF
+            </Button>
+          </div>
+        </div>
+        {message ? (
+          <p className="mt-4 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
+            {message}
+          </p>
+        ) : null}
+      </section>
+
+      {agreement ? (
+        <AgreementPreview agreement={agreement} />
+      ) : (
+        <section className="rounded-lg border border-border bg-surface p-5">
+          <div className="h-5 w-44 animate-pulse rounded bg-surface-raised" />
+          <div className="mt-4 h-56 animate-pulse rounded-lg bg-surface-raised" />
+        </section>
+      )}
+    </div>
+  );
+}
+
+function AgreementPreview({
+  agreement,
+}: {
+  agreement: PoolAgreementModel;
+}) {
+  const activeParticipants = agreement.participants.filter(
+    (participant) => participant.status === "active",
+  );
+
+  return (
+    <section className="overflow-hidden rounded-lg border border-[#8b7355] bg-[#efe3ce] text-[#17120d] shadow-[0_18px_80px_rgba(0,0,0,0.22)]">
+      <div className="border-b border-[#8b7355]/50 bg-[#5a321f] px-5 py-4 text-[#fff8e8]">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#e2c28a]">
+              {agreement.status === "sealed" ? "Sealed agreement" : "Draft preview"}
+            </p>
+            <h2 className="mt-2 text-3xl font-black leading-tight">
+              The Official Fan Picks Agreement
+            </h2>
+          </div>
+          <div className="rounded-full border-2 border-[#e2c28a] px-5 py-4 text-center font-black uppercase text-[#e2c28a]">
+            {agreement.status}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-5 p-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-lg border border-[#b19877] bg-[#f8eedc] p-5">
+          <p className="font-serif text-lg leading-8">
+            This Agreement is entered into by the undersigned Participants, each
+            bringing confidence, selective memory, and a dangerous amount of
+            tournament opinions.
+          </p>
+          <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+            <AgreementFact label="Pool" value={agreement.poolName} />
+            <AgreementFact label="Tournament" value={agreement.tournamentName} />
+            <AgreementFact label="Invite code" value={agreement.inviteCode} />
+            <AgreementFact label="Agreement ID" value={agreement.agreementId} />
+            <AgreementFact
+              label="Lock date"
+              value={`${formatDate(agreement.lockDate)} IST`}
+            />
+            <AgreementFact
+              label="Fingerprint"
+              value={`${agreement.fingerprint.slice(0, 18)}...`}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-[#b19877] bg-[#f8eedc] p-5">
+          <div className="flex items-center gap-2">
+            <ScrollText aria-hidden className="h-5 w-5 text-[#8b5c2f]" />
+            <h3 className="text-lg font-black">Parties involved</h3>
+          </div>
+          <div className="mt-4 grid gap-2">
+            {agreement.participants.map((participant, index) => (
+              <div
+                className="grid grid-cols-[48px_1fr_auto] items-center gap-3 rounded-md border border-[#d0b894] bg-[#efe3ce] px-3 py-2 text-sm"
+                key={participant.profileId}
+              >
+                <span className="font-bold text-[#8b5c2f]">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span>
+                  <strong>{participant.displayName}</strong>{" "}
+                  <span className="text-[#6f5c48]">@{participant.handle}</span>
+                </span>
+                <Badge
+                  variant={participant.status === "active" ? "accent" : "muted"}
+                >
+                  {participant.role}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-5 border-t border-[#b19877] p-5 lg:grid-cols-2">
+        {agreementClauses.map((clause, index) => (
+          <article
+            className="rounded-lg border border-[#b19877] bg-[#f8eedc] p-4"
+            key={clause.title}
+          >
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8b5c2f]">
+              Clause {index + 1}
+            </p>
+            <h3 className="mt-2 text-lg font-black">{clause.title}</h3>
+            <p className="mt-2 text-sm leading-6 text-[#3f3429]">
+              {clause.body}
+            </p>
+          </article>
+        ))}
+      </div>
+
+      <div className="grid gap-5 border-t border-[#b19877] p-5 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-lg border border-[#b19877] bg-[#f8eedc] p-5">
+          <div className="flex items-center gap-2">
+            <ShieldCheck aria-hidden className="h-5 w-5 text-[#8b5c2f]" />
+            <h3 className="text-lg font-black">Audit summary</h3>
+          </div>
+          <div className="mt-4 grid gap-2 text-sm">
+            <AgreementFact
+              label="Total audit events"
+              value={String(agreement.auditSummary.totalAuditEvents)}
+            />
+            <AgreementFact
+              label="Pick versions saved"
+              value={String(agreement.auditSummary.pickVersionsSaved)}
+            />
+            <AgreementFact
+              label="Prediction locks"
+              value={String(agreement.auditSummary.predictionLocks)}
+            />
+            <AgreementFact
+              label="Prediction reopens"
+              value={String(agreement.auditSummary.predictionReopens)}
+            />
+            <AgreementFact
+              label="Bet changes"
+              value={String(agreement.auditSummary.betChanges)}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-[#b19877] bg-[#f8eedc] p-5">
+          <div className="flex items-center gap-2">
+            <FileText aria-hidden className="h-5 w-5 text-[#8b5c2f]" />
+            <h3 className="text-lg font-black">Recorded picks schedule</h3>
+          </div>
+          {agreement.isSealed ? (
+            <RecordedPicksTable
+              bets={agreement.bets}
+              participants={activeParticipants}
+              picks={agreement.picks}
+            />
+          ) : (
+            <p className="mt-4 rounded-md border border-[#d0b894] bg-[#efe3ce] p-4 text-sm leading-6 text-[#3f3429]">
+              Draft agreements do not reveal picks. Once the pool lock date
+              passes, this schedule seals with every active participant’s saved
+              selections from Supabase.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="border-t border-[#b19877] px-5 py-4 text-xs leading-5 text-[#6f5c48]">
+        Friendly document only. No deposits, odds, payouts, courtrooms, or
+        dramatic chair-spinning objections. Generated {formatDateTime(agreement.generatedAt)} IST.
+      </div>
+    </section>
+  );
+}
+
+function AgreementFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-[#d0b894] bg-[#efe3ce] px-3 py-2">
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8b5c2f]">
+        {label}
+      </p>
+      <p className="mt-1 break-words font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function RecordedPicksTable({
+  bets,
+  participants,
+  picks,
+}: {
+  bets: PredictionCategory[];
+  participants: PoolAgreementModel["participants"];
+  picks: PoolAgreementPickRow[];
+}) {
+  return (
+    <div className="mt-4 overflow-x-auto rounded-md border border-[#d0b894]">
+      <table className="min-w-full border-collapse text-left text-sm">
+        <thead className="bg-[#dfc49a] text-xs uppercase tracking-[0.12em] text-[#3f3429]">
+          <tr>
+            <th className="px-3 py-2">Bet</th>
+            <th className="px-3 py-2">Participant</th>
+            <th className="px-3 py-2">Selected option(s)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {bets.flatMap((bet) =>
+            participants.map((participant) => {
+              const pick = picks.find(
+                (row) =>
+                  row.betId === bet.id &&
+                  row.profileId === participant.profileId,
+              );
+
+              return (
+                <tr
+                  className="border-t border-[#d0b894] bg-[#f8eedc]"
+                  key={`${bet.id}-${participant.profileId}`}
+                >
+                  <td className="px-3 py-2 font-semibold">{bet.name}</td>
+                  <td className="px-3 py-2">{participant.displayName}</td>
+                  <td className="px-3 py-2">
+                    {pick?.selectedOptions.length
+                      ? pick.selectedOptions.join(", ")
+                      : "No saved pick"}
+                  </td>
+                </tr>
+              );
+            }),
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const agreementClauses = [
+  {
+    title: "Purpose of Agreement",
+    body: "This document records the pool, the participants, and the sacred predictions before hindsight starts doing push-ups.",
+  },
+  {
+    title: "Lock Date",
+    body: "After the lock date, picks cannot be edited, rescued, spiritually reinterpreted, or renamed as the plan all along.",
+  },
+  {
+    title: "Audit Log",
+    body: "The audit log is the official memory of the group and outranks screenshots, voice notes, and suspiciously confident retellings.",
+  },
+  {
+    title: "Bragging Rights",
+    body: "The winner may brag with style. The group may roll their eyes, but the sealed record remains unbeaten.",
+  },
+  {
+    title: "Vibes Clause",
+    body: "If someone wins entirely on vibes, the parties agree to respect the vibes and pretend it was analysis.",
+  },
+  {
+    title: "No Money Drama",
+    body: "Fan Picks is for predictions, friendship, and harmless chaos. No odds, deposits, payouts, or spreadsheet debt collectors.",
+  },
+];
 
 export function RulesRoute({ championship }: { championship: Championship }) {
   const { profile } = useGuestSession();
@@ -405,6 +772,13 @@ function formatDateTime(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(`${value}T00:00:00+05:30`));
 }
 
 function isPastLockDate(value: string) {

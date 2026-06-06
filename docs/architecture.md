@@ -18,6 +18,8 @@ The main shell is `src/components/app/app-shell.tsx`.
   - Create Pool: `/championships/create`
   - Join Pool: `/championships/join`
 - Pool-specific navigation appears only for `/championships/[id]/*` routes.
+- Pool-specific pages include Picks, Participants, Audit Log, Bets, and
+  Agreement.
 
 Routes live under `src/app/championships`.
 
@@ -83,6 +85,48 @@ It owns database reads/writes:
 - Save prediction submissions and versions.
 - Lock predictions.
 - Insert/upsert audit events.
+
+## Pool Agreement
+
+Pool Agreement is a pool-specific page at
+`/championships/[championshipId]/agreement`.
+
+It shows a parchment-style preview and lets active participants download a PDF
+called "The Official Fan Picks Agreement".
+
+Core files:
+
+- `src/components/championship/pages/championship-routes.tsx`
+- `src/lib/pool-agreement-client.ts`
+- `src/lib/pool-agreement.ts`
+- `src/lib/server-pool-agreement.ts`
+- `src/app/api/pools/[championshipId]/agreement/route.ts`
+
+Server/data rules:
+
+- The browser never builds the agreement from local storage.
+- The page calls `GET /api/pools/[championshipId]/agreement`.
+- The API validates the Supabase Auth bearer token.
+- The API verifies the user is an active participant in the pool.
+- The API reloads championships, participants, bets, prediction submissions,
+  prediction versions, and audit events from Supabase using the service role.
+- `?format=pdf` returns a PDF generated from the same server-side agreement
+  model.
+
+Business rules:
+
+- Before the pool lock deadline, the agreement is a draft preview and hides all
+  picks.
+- After the pool lock deadline, the agreement is sealed and lists every active
+  participant's selected option(s) per bet.
+- Locked submissions use their locked version.
+- Unlocked submissions use the latest saved version after the deadline.
+- Left participants can be shown as left in the parties list, but their picks
+  are excluded from the recorded picks schedule.
+- Agreement identity includes invite code, agreement ID
+  `FPA-{inviteCode}-{lockDate YYYYMMDD}`, and a SHA-256 fingerprint.
+- The PDF includes a compact audit summary. The full audit timeline remains on
+  the Audit Log page.
 
 ## Tournament Templates
 

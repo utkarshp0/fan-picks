@@ -23,6 +23,7 @@ import {
   useChampionships,
 } from "@/lib/championship-store";
 import {
+  AgreementRoute,
   AuditRoute,
   ParticipantsRoute,
   PredictionsRoute,
@@ -30,7 +31,12 @@ import {
 } from "@/components/championship/pages/championship-routes";
 import type { Championship } from "@/types/championship";
 
-type ChampionshipPageName = "predictions" | "participants" | "audit" | "rules";
+type ChampionshipPageName =
+  | "predictions"
+  | "participants"
+  | "audit"
+  | "rules"
+  | "agreement";
 
 type ChampionshipRoutePageProps = {
   championshipId: string;
@@ -42,6 +48,7 @@ const pageTabs: Array<{ label: string; path: ChampionshipPageName }> = [
   { label: "Participants", path: "participants" },
   { label: "Audit Log", path: "audit" },
   { label: "Bets", path: "rules" },
+  { label: "Agreement", path: "agreement" },
 ];
 
 export function ChampionshipRoutePage({
@@ -304,6 +311,10 @@ function renderPage(page: ChampionshipPageName, championship: Championship) {
 
   if (page === "rules") {
     return <RulesRoute championship={championship} />;
+  }
+
+  if (page === "agreement") {
+    return <AgreementRoute championship={championship} />;
   }
 
   return <PredictionsRoute championship={championship} />;
