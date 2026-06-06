@@ -1,3 +1,4 @@
+import { isPastPoolLockDate } from "@/lib/app-clock";
 import { createSupabaseServiceClient } from "@/lib/supabase-server";
 import type { AuditEvent, PredictionCategory } from "@/types/championship";
 
@@ -210,5 +211,5 @@ function normalizeEvents(input: unknown) {
 }
 
 function isPastLockDate(value: string) {
-  return Date.now() >= new Date(`${value}T23:59:59`).getTime();
+  return isPastPoolLockDate(value);
 }

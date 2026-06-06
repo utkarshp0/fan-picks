@@ -109,11 +109,15 @@ BIG_BALLS_DATA_API_KEY=
 BIG_BALLS_DATA_BASE_URL=https://api.bigballsdata.com
 BIG_BALLS_DATA_SYNC_LEAGUES=fifa-world-cup-2026:wc2026
 WORLDCUP26_API_URL=
+FAN_PICKS_TEST_NOW=
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` and `BIG_BALLS_DATA_API_KEY` are server-only. Never
 expose them in browser code, logs, docs, screenshots, or commits. Both were
 pasted during development; rotate them before production launch.
+
+`FAN_PICKS_TEST_NOW` is optional and must not be set in production. It exists
+only for local/staging/test runs that need to simulate before/after lock time.
 
 ## Auth Decision
 
@@ -179,6 +183,7 @@ Important current behavior:
 
 Relevant files:
 
+- `src/lib/app-clock.ts`
 - `src/lib/championship-store.ts`
 - `src/lib/pool-supabase.ts`
 - `src/lib/server-pools.ts`
@@ -204,6 +209,9 @@ Relevant files:
 - Bet `selectionCount` is enforced in the checkbox UI, in
   `savePredictionDraft`, and again in the server lock route. Do not silently
   slice extra selections; reject them with a clear message.
+- Lock-sensitive server code must use `src/lib/app-clock.ts`; do not use raw
+  `new Date()`/`Date.now()` for lock decisions. Pool lock dates are interpreted
+  as end-of-day IST. Match Pick locks are exact timestamps.
 
 ## Pool Bet Editing Rule
 
@@ -333,11 +341,14 @@ Product rules:
 Core files:
 
 - `src/components/match-picks/match-picks-pages.tsx`
+- `src/data/lock-test-scenarios.ts`
 - `src/lib/match-pick-rules.ts`
 - `src/lib/match-picks-client.ts`
 - `src/lib/server-match-picks.ts`
 - `src/types/match-picks.ts`
 - `tests/match-picks.test.ts`
+- `tests/app-clock.test.ts`
+- `tests/lock-test-scenarios.test.ts`
 - `supabase/match-picks-migration.sql`
 
 Routes:
@@ -459,6 +470,14 @@ reasons. It is acceptable to keep code names until a focused cleanup is planned.
 
 - `Utkarsh` / `utkarsh` may already be reserved in `profiles` from earlier
   testing. Use a new username or clean the legacy profile row in Supabase.
+- Reusable lock-test users are defined in
+  `src/data/lock-test-scenarios.ts`:
+  - `lock-test-asha`
+  - `lock-test-dev`
+- Run `npm run seed:lock-test-data` only against local/staging/test Supabase
+  projects unless test data is intentionally wanted in production. It creates
+  active, past-lock, and scored Pool/Match Pick scenarios tied to those two
+  users.
 - `app_accounts` may exist in Supabase if the legacy migration was run. It is
   no longer used.
 - The app has been tested locally at `http://localhost:3001`.
@@ -474,6 +493,7 @@ Run from `C:\QA\fan-picks`:
 npm run lint
 npm test
 npm run build
+npm run seed:lock-test-data
 ```
 
 Local dev server usually runs on:
@@ -495,7 +515,8 @@ Quick Supabase Auth smoke test from Node can use the anon key and
 - The UI still uses local cache for responsiveness; remote sync failure should
   be surfaced more clearly to users in future work.
 - There are no automated end-to-end tests yet.
-- Lock/reopen currently has a manual test guide but no automated E2E coverage.
+- Lock/reopen has deterministic unit coverage through `FAN_PICKS_TEST_NOW` and
+  seedable manual test data, but there are still no browser E2E tests.
 - Big Balls Data live sync has a unit-tested normalizer and has been manually
   smoke-tested against `/v1/wc2026/matches` locally. The local
   `/api/live-scores` route returned 72 fixtures, 72 upcoming, 0 live, and
@@ -525,6 +546,10 @@ Keep this short and newest-first. Record changes that affect future AI context.
   brand mark in `src/components/brand/fan-picks-mark.tsx`, mirrored it in
   `public/icon.svg`, wired it into app chrome/auth/loading states, and updated
   generated share preview imagery.
+- 2026-06-06: Added `src/lib/app-clock.ts` with `FAN_PICKS_TEST_NOW` support,
+  standardized pool lock dates as end-of-day IST, wired server pool/Match Pick
+  lock checks to the shared clock, and added reusable lock-test users/scenarios
+  plus seed command `npm run seed:lock-test-data`.
 - 2026-06-06: Added a logo-free generated World Cup-style stadium visual asset
   and applied it to Live Scores and Match Picks with richer fixture cards and
   stylized team spotlight visuals.

@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
-import { describe, test } from "node:test";
+import { afterEach, describe, test } from "node:test";
 
 import {
   isPastLockDate,
   validateLockPicks,
 } from "../src/lib/server-prediction-locks";
 import type { PredictionCategory } from "../src/types/championship";
+
+afterEach(() => {
+  delete process.env.FAN_PICKS_TEST_NOW;
+});
 
 // --- fixtures ---
 
@@ -141,8 +145,17 @@ describe("isPastLockDate", () => {
   });
 
   test("lock boundary is 23:59:59 on the given date (not midnight)", () => {
-    // A date like "2026-06-10" locks at 2026-06-10T23:59:59, not T00:00:00.
-    // Verify this by checking that a far-future date is not past.
-    assert.equal(isPastLockDate("2050-06-10"), false);
+    process.env.FAN_PICKS_TEST_NOW = "2026-06-10T18:29:58.000Z";
+    assert.equal(isPastLockDate("2026-06-10"), false);
+
+    process.env.FAN_PICKS_TEST_NOW = "2026-06-10T18:29:59.999Z";
+    assert.equal(isPastLockDate("2026-06-10"), true);
+  });
+
+  test("can simulate after-lock pool behavior through FAN_PICKS_TEST_NOW", () => {
+    process.env.FAN_PICKS_TEST_NOW = "2026-06-11T00:00:00.000Z";
+
+    assert.equal(isPastLockDate("2026-06-10"), true);
+    assert.equal(isPastLockDate("2026-06-12"), false);
   });
 });

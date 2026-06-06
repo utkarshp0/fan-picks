@@ -6,6 +6,7 @@ import {
   createMatchPickInviteMessage,
   createMatchPickRoomName,
   evaluateMatchPickAnswer,
+  getComputedMatchPickStatus,
   getMatchPickInvitePath,
   getMatchPickLockAt,
   getWinnerMessage,
@@ -76,6 +77,42 @@ describe("Match Picks rules", () => {
 
     assert.equal(isPastMatchPickLock(lockAt, new Date("2026-06-11T16:59:59.000Z")), false);
     assert.equal(isPastMatchPickLock(lockAt, new Date("2026-06-11T17:00:00.000Z")), true);
+  });
+
+  it("computes Match Pick room status before and after lock", () => {
+    const lockAt = "2026-06-11T17:00:00.000Z";
+    const upcomingFixture = { ...fixture, status: "upcoming" };
+
+    assert.equal(
+      getComputedMatchPickStatus(
+        upcomingFixture,
+        lockAt,
+        "open",
+        new Date("2026-06-11T16:59:59.000Z"),
+      ),
+      "open",
+    );
+    assert.equal(
+      getComputedMatchPickStatus(
+        upcomingFixture,
+        lockAt,
+        "open",
+        new Date("2026-06-11T17:00:00.000Z"),
+      ),
+      "locked",
+    );
+  });
+
+  it("finished fixtures override lock status", () => {
+    assert.equal(
+      getComputedMatchPickStatus(
+        fixture,
+        "2026-06-11T17:00:00.000Z",
+        "open",
+        new Date("2026-06-11T18:00:00.000Z"),
+      ),
+      "finished",
+    );
   });
 
   it("uses team names in room titles", () => {

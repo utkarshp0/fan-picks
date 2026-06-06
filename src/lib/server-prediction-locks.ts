@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import { getChampionshipTemplate } from "@/data/templates";
+import { getAppNowIso, isPastPoolLockDate } from "@/lib/app-clock";
 import { createSupabaseServiceClient } from "@/lib/supabase-server";
 import type { PredictionCategory } from "@/types/championship";
 import type { AuditEvent } from "@/types/championship";
@@ -100,7 +101,7 @@ export async function lockPredictionOnServer(
     };
   }
 
-  const lockedAt = new Date().toISOString();
+  const lockedAt = getAppNowIso();
   const fingerprint = createPredictionFingerprint({
     championshipId,
     participantId: participant.id,
@@ -174,7 +175,7 @@ export async function unlockPredictionOnServer(
       locked_version_id: null,
       locked_at: null,
       fingerprint: null,
-      last_edited_at: new Date().toISOString(),
+      last_edited_at: getAppNowIso(),
     })
     .eq("id", submission.id);
 
@@ -329,7 +330,7 @@ async function insertAuditEvent(
     label: event.label,
     actor_name: event.actorName,
     details: event.details,
-    created_at: new Date().toISOString(),
+    created_at: getAppNowIso(),
   });
 }
 
@@ -338,5 +339,5 @@ function createPredictionFingerprint(payload: unknown) {
 }
 
 export function isPastLockDate(value: string) {
-  return Date.now() >= new Date(`${value}T23:59:59`).getTime();
+  return isPastPoolLockDate(value);
 }

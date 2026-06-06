@@ -13,6 +13,7 @@ import {
   normalizeMatchPickAnswer,
   validateMatchPickAnswer,
 } from "@/lib/match-pick-rules";
+import { getAppNow, getAppNowIso } from "@/lib/app-clock";
 import { createSupabaseServiceClient } from "@/lib/supabase-server";
 import type {
   MatchPickAnswer,
@@ -115,7 +116,7 @@ type DbAuditEvent = {
 
 export async function getUpcomingMatchPickFixtures(
   tournamentId = "fifa-world-cup-2026",
-  now = new Date(),
+  now = getAppNow(),
 ): Promise<MatchPickFixtureOption[]> {
   const supabase = createSupabaseServiceClient();
   const nowIso = now.toISOString();
@@ -245,11 +246,11 @@ export async function createMatchPickRoom(
 
   const lockAt = getMatchPickLockAt(fixture.kickoffUtc);
 
-  if (isPastMatchPickLock(lockAt)) {
+  if (isPastMatchPickLock(lockAt, getAppNow())) {
     return { ok: false, message: "This match is already locked.", status: 400 };
   }
 
-  const now = new Date().toISOString();
+  const now = getAppNowIso();
   const roomId = randomUUID();
   const participantId = randomUUID();
   const inviteCode = createInviteCode();
@@ -330,7 +331,7 @@ export async function joinMatchPickRoom(
   }
 
   const roomId = roomRow.id as string;
-  const now = new Date().toISOString();
+  const now = getAppNowIso();
   const { data: existing } = await supabase
     .from("match_pick_participants")
     .select("id, role")
@@ -401,7 +402,7 @@ export async function leaveMatchPickRoom(
     return { ok: false, message: "You are not in this Match Pick room.", status: 404 };
   }
 
-  const now = new Date().toISOString();
+  const now = getAppNowIso();
   const { error: participantUpdateError } = await supabase
     .from("match_pick_participants")
     .update({ left_at: now })
@@ -443,7 +444,7 @@ export async function saveMatchPickAnswer(
     return { ok: false, message: "Join this room before saving picks.", status: 403 };
   }
 
-  if (isPastMatchPickLock(room.lockAt)) {
+  if (isPastMatchPickLock(room.lockAt, getAppNow())) {
     return {
       ok: false,
       message: `Picks locked at ${formatIst(room.lockAt)}.`,
@@ -458,7 +459,7 @@ export async function saveMatchPickAnswer(
   }
 
   const supabase = createSupabaseServiceClient();
-  const now = new Date().toISOString();
+  const now = getAppNowIso();
   const existingSubmission = room.submissions.find(
     (submission) => submission.profileId === auth.userId,
   );
@@ -548,7 +549,7 @@ export async function scoreMatchPickRoom(
   }
 
   const supabase = createSupabaseServiceClient();
-  const now = new Date().toISOString();
+  const now = getAppNowIso();
   const updates = room.submissions.map((submission) => ({
     id: submission.id,
     result_status: evaluateMatchPickAnswer(
@@ -662,7 +663,8 @@ function mapRoomFromDb(
 ): MatchPickRoom {
   const fixture = mapFixtureFromDb(row.sports_fixtures as DbFixture);
   const status = getComputedMatchPickStatus(fixture, row.lock_at, row.status);
-  const canSeeAllSubmissions = options.includeHidden || isPastMatchPickLock(row.lock_at);
+  const canSeeAllSubmissions =
+    options.includeHidden || isPastMatchPickLock(row.lock_at, getAppNow());
   const submissions = (row.match_pick_submissions ?? [])
     .filter((submission) => canSeeAllSubmissions || submission.profile_id === viewerProfileId)
     .map(mapSubmissionFromDb);

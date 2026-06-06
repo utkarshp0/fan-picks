@@ -225,6 +225,22 @@ Rules:
 - After the lock date passes, picks cannot be edited or reopened.
 - Before lock, users can see their own picks; other users' picks stay hidden.
 
+### Lock Time Source
+
+Lock-sensitive server code must use `src/lib/app-clock.ts`, not raw
+`new Date()` or `Date.now()`.
+
+- Production uses the real server clock.
+- Local/test/staging may set `FAN_PICKS_TEST_NOW` to simulate before/after lock
+  behavior without waiting for real dates.
+- Pool `lockDate` values are date-only product dates and are evaluated at the
+  end of that date in IST.
+- Match Pick `lock_at` values are exact timestamps calculated as kickoff minus
+  two hours.
+
+The browser may disable buttons for good UX, but every write endpoint must
+repeat the lock check server-side.
+
 Lock/unlock persistence is server-enforced:
 
 - `src/app/api/predictions/lock/route.ts`
@@ -241,6 +257,27 @@ Selection limits are enforced before persistence:
 - `savePredictionDraft` rejects over-limit picks.
 - Server lock rejects any latest version that does not have exactly the required
   number of picks for each bet.
+
+## Lock Test Data
+
+Reusable lock-test users and scenario IDs live in
+`src/data/lock-test-scenarios.ts`.
+
+Run this only against local/staging/test Supabase projects unless you
+intentionally want test data in production:
+
+```bash
+npm run seed:lock-test-data
+```
+
+The seed creates/updates two Supabase Auth users:
+
+- `lock-test-asha`
+- `lock-test-dev`
+
+It also creates active, past-lock, and scored scenarios for Pools and Match
+Picks so manual QA can verify save, lock, reopen, reveal, and scoring behavior
+without waiting for real tournament dates.
 
 ## Audit
 
