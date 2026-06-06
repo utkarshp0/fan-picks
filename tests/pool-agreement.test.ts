@@ -6,6 +6,7 @@ import {
   createPoolAgreementId,
   getFinalPredictionVersion,
 } from "../src/lib/pool-agreement";
+import { createPoolAgreementPdf } from "../src/lib/server-pool-agreement";
 import type {
   AuditEvent,
   Championship,
@@ -265,5 +266,19 @@ describe("pool agreement rules", () => {
     const version = getFinalPredictionVersion(submission);
 
     assert.equal(version?.id, "v1");
+  });
+
+  test("agreement PDF keeps the default agreement layout to two pages", async () => {
+    process.env.FAN_PICKS_TEST_NOW = "2026-06-10T18:30:00.000Z";
+
+    const agreement = createAgreementPreviewModel({
+      championship: makeChampionship(),
+      generatedAt: "2026-06-10T18:30:00.000Z",
+      tournamentName: "FIFA World Cup 2026",
+    });
+    const pdf = await createPoolAgreementPdf(agreement);
+    const pageCount = (pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) ?? []).length;
+
+    assert.equal(pageCount, 2);
   });
 });

@@ -318,63 +318,70 @@ function drawAgreementPage(
 ) {
   addPage(document);
   drawTitle(document, agreement);
-  let y = 226;
+  let y = 214;
 
   y = paragraph(
     document,
     "This Agreement is entered into by and between the undersigned Participants, each possessing varying degrees of sports knowledge, confidence, and emotional risk.",
     70,
     y,
-    455,
+    405,
+    9.8,
+    2,
   );
-  y += 8;
+  y += 6;
   textLine(document, "Pool:", agreement.poolName, 70, y);
-  y += 18;
+  y += 17;
   textLine(document, "Tournament:", agreement.tournamentName, 70, y);
-  y += 18;
+  y += 17;
   textLine(document, "Invite Code:", agreement.inviteCode, 70, y);
-  y += 18;
+  y += 17;
   textLine(document, "Agreement ID:", agreement.agreementId, 70, y);
-  y += 18;
+  y += 17;
   textLine(document, "Lock Date:", `${formatDate(agreement.lockDate)} IST`, 70, y);
   drawSeal(document, 492, 268, agreement.isSealed ? "SEALED" : "DRAFT");
-  y += 34;
+  y += 30;
 
   y = section(document, "1. PARTIES INVOLVED", y);
-  for (const [index, participant] of agreement.participants.entries()) {
+  for (const [index, participant] of agreement.participants.slice(0, 6).entries()) {
     rowLine(document, y, [
       `Party ${index + 1}`,
       participant.displayName,
       `@${participant.handle}`,
       participant.status === "active" ? participant.role : "left",
     ]);
-    y += 28;
-  }
-  y += 8;
-
-  for (const [title, body] of friendlyClauses.slice(0, 5)) {
-    y = clause(document, title, body, y);
+    y += 24;
   }
 
-  y = section(document, "6. HEREBY AGREED", y);
-  y = paragraph(
+  if (agreement.participants.length > 6) {
+    fitText(
+      document,
+      `+ ${agreement.participants.length - 6} more participant(s) listed in signatures`,
+      88,
+      y + 2,
+      330,
+      8.5,
+      "Times-Italic",
+      "#3f3429",
+    );
+    y += 18;
+  }
+  y += 4;
+
+  for (const [index, [title, body]] of friendlyClauses.entries()) {
+    y = clause(document, `${index + 2}. ${title}`, body, y);
+  }
+
+  y = compactSection(document, "7. HEREBY AGREED", y);
+  paragraph(
     document,
     "The Participants hereby agree that the Pool, the picks, the Lock Date, and the Audit Log together form the official friendship record. Each Participant further agrees that after sealing, selective memory shall be admired for creativity but rejected as evidence.",
     86,
     y,
     430,
-    9.6,
-    2,
+    8.8,
+    1,
   );
-  y += 10;
-
-  y = section(document, "7. PARTICIPANT SIGNATURES", y);
-  const signatureY = y;
-  for (const [index, participant] of agreement.participants.slice(0, 4).entries()) {
-    const x = 78 + (index % 2) * 230;
-    const boxY = signatureY + Math.floor(index / 2) * 50;
-    signatureBlock(document, x, boxY, participant.displayName, `@${participant.handle}`, agreement.isSealed ? "Locked" : "Waiting");
-  }
 
   footer(document, agreement, 1);
 }
@@ -386,24 +393,64 @@ function drawRecordedPicksPage(
   addPage(document);
   document
     .font("Times-Bold")
-    .fontSize(27)
+    .fontSize(26)
     .fillColor("#17120d")
-    .text("RECORDED PICKS SCHEDULE", 0, 105, { align: "center" });
+    .text("PARTICIPANT SIGNATURES", 0, 92, { align: "center" });
   document
     .font("Times-Roman")
     .fontSize(10)
     .fillColor("#3f3429")
     .text(
-      agreement.isSealed
-        ? "The following selections were recorded from sealed pool data."
-        : "Draft preview: selections stay hidden until this agreement is sealed.",
+      "The undersigned hereby agree to be judged by their recorded picks and group chat energy.",
       0,
-      132,
+      120,
       { align: "center" },
     );
 
-  let y = 172;
-  y = section(document, "7. RECORDED PICKS PER PARTICIPANT", y);
+  const signatureStartY = 154;
+  for (const [index, participant] of agreement.participants.slice(0, 8).entries()) {
+    const x = 78 + (index % 2) * 230;
+    const boxY = signatureStartY + Math.floor(index / 2) * 48;
+    signatureBlock(
+      document,
+      x,
+      boxY,
+      participant.displayName,
+      `@${participant.handle}`,
+      agreement.isSealed ? "Agreed" : "Draft",
+    );
+  }
+
+  let y = signatureStartY + Math.ceil(Math.min(agreement.participants.length, 8) / 2) * 48 + 22;
+
+  if (agreement.participants.length > 8) {
+    fitText(
+      document,
+      `+ ${agreement.participants.length - 8} more participant(s) recorded in pool data`,
+      78,
+      y,
+      360,
+      8.5,
+      "Times-Italic",
+      "#3f3429",
+    );
+    y += 18;
+  }
+
+  y = section(document, "8. RECORDED PICKS SCHEDULE", y);
+  document
+    .font("Times-Roman")
+    .fontSize(9.4)
+    .fillColor("#3f3429")
+    .text(
+      agreement.isSealed
+        ? "The following selections were recorded from sealed pool data."
+        : "Draft preview: selections stay hidden until this agreement is sealed.",
+      58,
+      y,
+      { width: 480 },
+    );
+  y = document.y + 14;
 
   if (!agreement.isSealed) {
     y = paragraph(
@@ -453,7 +500,7 @@ function drawRecordedPicksPage(
   }
 
   y += 16;
-  y = section(document, "8. AUDIT SUMMARY", y);
+  y = section(document, "9. AUDIT SUMMARY", y);
   const summary = agreement.auditSummary;
   const auditRows = [
     ["Pool created", formatDateTime(summary.poolCreatedAt)],
@@ -490,23 +537,23 @@ function drawRecordedPicksPage(
 
 const friendlyClauses = [
   [
-    "1. PURPOSE",
+    "PURPOSE",
     "To record everyone’s picks before hindsight enters the chat, before confidence becomes memory, and before anyone claims they were obviously thinking the same thing.",
   ],
   [
-    "2. LOCK DATE",
+    "LOCK DATE",
     "After the Lock Date, no picks may be edited, reopened, rescued, upgraded, spiritually reinterpreted, or explained as what I meant was.",
   ],
   [
-    "3. AUDIT LOG",
+    "AUDIT LOG",
     "The Audit Log shall serve as the official memory of the Pool and shall be trusted more than any participant’s recollection after the first major upset.",
   ],
   [
-    "4. BRAGGING RIGHTS",
+    "BRAGGING RIGHTS",
     "The winner may brag responsibly. Excessive bragging may be muted by the group, but the result itself may not be disputed.",
   ],
   [
-    "5. VIBES CLAUSE",
+    "VIBES CLAUSE",
     "If a Participant wins by vibes alone, the group shall respect the vibes and pretend this was analysis.",
   ],
 ] as const;
@@ -548,9 +595,14 @@ function section(document: PDFKit.PDFDocument, title: string, y: number) {
   return y + 20;
 }
 
+function compactSection(document: PDFKit.PDFDocument, title: string, y: number) {
+  document.font("Times-Bold").fontSize(11).fillColor("#17120d").text(title, 70, y);
+  return y + 16;
+}
+
 function clause(document: PDFKit.PDFDocument, title: string, body: string, y: number) {
-  document.font("Times-Bold").fontSize(12).fillColor("#17120d").text(title, 70, y);
-  return paragraph(document, body, 86, y + 15, 450, 10, 13) + 9;
+  document.font("Times-Bold").fontSize(10.8).fillColor("#17120d").text(title, 70, y);
+  return paragraph(document, body, 86, y + 13, 430, 8.9, 1.2) + 8;
 }
 
 function paragraph(
