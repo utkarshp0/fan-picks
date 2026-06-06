@@ -150,12 +150,16 @@ The current product intent is to offer a small number of major tournaments and
 let pool creators add custom bets.
 
 Sports data is not read directly from a third-party API in React. Big Balls
-Data is integrated as a server-side source and cached in Supabase:
+Data and WorldCup26 are integrated as server-side sources and cached in
+Supabase:
 
 - `src/lib/big-balls-data.ts` calls Big Balls Data with the server-only
   `BIG_BALLS_DATA_API_KEY`. FIFA World Cup 2026 uses the dedicated
   `/v1/wc2026/matches` endpoint; generic football leagues use match endpoints
   as fallback.
+- `src/lib/worldcup26-fallback.ts` calls `https://worldcup26.ir/get/teams` by
+  default for the FIFA World Cup 2026 qualified team list. Override with
+  `WORLDCUP26_TEAMS_API_URL` if needed.
 - `src/app/api/sports/sync/route.ts` validates a Supabase Auth session before
   spending API quota.
 - `src/lib/server-sports-data.ts` writes normalized rows to
@@ -169,6 +173,10 @@ Data is integrated as a server-side source and cached in Supabase:
   `Group E Winner`, `Group B 2nd Place`, and `THIRD PLACE GROUP ...` out of
   prediction choices. Those placeholders may remain in future fixtures, but
   they must not be offered as selectable teams for pool bets.
+
+For World Cup 2026, fixtures/live scores come from Big Balls while prediction
+team choices come from the dedicated WorldCup26 teams endpoint when available.
+Fixture-derived teams are only a fallback.
 
 Create Pool automatically checks cached tournament data. If the selected
 tournament is missing teams, the app syncs in the background after login. Once

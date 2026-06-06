@@ -10,6 +10,10 @@ import {
   syncSportsDataSnapshot,
 } from "@/lib/server-sports-data";
 import { createSupabaseServiceClient, isSupabaseServerConfigured } from "@/lib/supabase-server";
+import {
+  fetchWorldCup26QualifiedTeams,
+  withWorldCup26QualifiedTeams,
+} from "@/lib/worldcup26-fallback";
 import type { SportsSyncResult } from "@/types/sports-data";
 
 export async function POST(request: Request) {
@@ -36,7 +40,26 @@ export async function POST(request: Request) {
   try {
     for (const config of getSportsLeagueSyncConfig()) {
       const matches = await fetchBigBallsLeagueMatches(config);
-      const snapshot = normalizeBigBallsMatches(config, matches, syncedAt);
+      const matchSnapshot = normalizeBigBallsMatches(config, matches, syncedAt);
+      const qualifiedTeams = await fetchWorldCup26QualifiedTeams(config).catch(
+        async (teamError) => {
+          await recordSportsSyncFailure({
+            message:
+              teamError instanceof Error
+                ? teamError.message
+                : "WorldCup26 teams sync failed.",
+            syncedAt,
+            tournamentId: config.tournamentId,
+            source: "worldcup26-teams",
+          });
+
+          return null;
+        },
+      );
+      const snapshot = withWorldCup26QualifiedTeams(
+        matchSnapshot,
+        qualifiedTeams,
+      );
 
       await syncSportsDataSnapshot(config, snapshot);
       tournaments.push({

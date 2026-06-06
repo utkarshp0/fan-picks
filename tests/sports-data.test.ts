@@ -5,6 +5,10 @@ import { normalizeBigBallsMatches } from "../src/lib/big-balls-data";
 import { enrichTemplatesWithSportsData } from "../src/lib/sports-data-client";
 import { worldCup2026Template } from "../src/data/templates";
 import { filterRealSportsTeamNames } from "../src/lib/sports-team-utils";
+import {
+  normalizeWorldCup26Teams,
+  withWorldCup26QualifiedTeams,
+} from "../src/lib/worldcup26-fallback";
 
 describe("Big Balls Data sports sync", () => {
   it("normalizes matches into tournament teams and fixtures", () => {
@@ -115,6 +119,71 @@ describe("Big Balls Data sports sync", () => {
       snapshot.teams.map((team) => team.name),
       ["France", "Mexico"],
     );
+  });
+
+  it("normalizes WorldCup26 qualified teams from the dedicated teams endpoint", () => {
+    const teams = normalizeWorldCup26Teams("fifa-world-cup-2026", [
+      {
+        team_id: "37",
+        name_en: "Argentina",
+        fifa_code: "ARG",
+        flag: "https://example.test/arg.png",
+      },
+      {
+        id: "placeholder",
+        name_en: "Group E Winner",
+      },
+      {
+        team_id: "12",
+        name: "France",
+        fifa_code: "FRA",
+        flag_url: "https://example.test/fra.png",
+      },
+    ]);
+
+    assert.deepEqual(
+      teams.map((team) => ({
+        name: team.name,
+        providerTeamId: team.providerTeamId,
+        shortName: team.shortName,
+      })),
+      [
+        { name: "Argentina", providerTeamId: "37", shortName: "ARG" },
+        { name: "France", providerTeamId: "12", shortName: "FRA" },
+      ],
+    );
+  });
+
+  it("uses dedicated WorldCup26 teams instead of fixture-derived teams", () => {
+    const snapshot = normalizeBigBallsMatches(
+      {
+        tournamentId: "fifa-world-cup-2026",
+        league: "wc2026",
+      },
+      [
+        {
+          match_id: "match-1",
+          home_team: { id: "mex", name: "Mexico" },
+          away_team: { id: "group-e-winner", name: "Group E Winner" },
+          scheduled_at: "2026-06-11T19:00:00Z",
+          status: "upcoming",
+        },
+      ],
+      "2026-06-03T10:00:00.000Z",
+    );
+    const qualifiedTeams = normalizeWorldCup26Teams("fifa-world-cup-2026", [
+      { team_id: "37", name_en: "Argentina" },
+      { team_id: "12", name_en: "France" },
+    ]);
+    const merged = withWorldCup26QualifiedTeams(snapshot, qualifiedTeams);
+
+    assert.deepEqual(
+      merged.teams.map((team) => team.name),
+      ["Argentina", "France"],
+    );
+    assert.equal(merged.tournament.teamCount, 2);
+    assert.equal(merged.fixtures[0].homeTeamName, "Mexico");
+    assert.equal(merged.fixtures[0].awayTeamName, "Group E Winner");
   });
 
   it("injects synced team choices into team-based default bets", () => {

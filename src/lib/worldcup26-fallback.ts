@@ -1,11 +1,16 @@
 import type { NormalizedSportsSync, SportsLeagueSyncConfig } from "@/lib/big-balls-data";
 import { normalizeBigBallsMatches } from "@/lib/big-balls-data";
+import { isPlaceholderSportsTeamName } from "@/lib/sports-team-utils";
+import type { SportsTeam } from "@/types/sports-data";
 
 type WorldCup26Team = {
   id?: string | number;
   team_id?: string | number;
   name?: string;
+  name_en?: string;
+  fifa_code?: string;
   flag_url?: string;
+  flag?: string;
   logo?: string;
 };
 
@@ -60,6 +65,87 @@ export async function fetchWorldCup26FallbackSnapshot(
   );
 }
 
+export async function fetchWorldCup26QualifiedTeams(
+  config: SportsLeagueSyncConfig,
+): Promise<SportsTeam[] | null> {
+  if (config.tournamentId !== "fifa-world-cup-2026") {
+    return null;
+  }
+
+  const teamsUrl =
+    process.env.WORLDCUP26_TEAMS_API_URL ?? "https://worldcup26.ir/get/teams";
+  const response = await fetch(teamsUrl, { next: { revalidate: 0 } });
+
+  if (!response.ok) {
+    throw new Error(`worldcup26 teams sync failed with ${response.status}.`);
+  }
+
+  const payload = (await response.json()) as
+    | WorldCup26Team[]
+    | { data?: unknown; teams?: WorldCup26Team[] };
+  const teams = extractTeams(payload);
+
+  if (teams.length === 0) {
+    return null;
+  }
+
+  return normalizeWorldCup26Teams(config.tournamentId, teams);
+}
+
+export function normalizeWorldCup26Teams(
+  tournamentId: string,
+  teams: WorldCup26Team[],
+) {
+  const teamsById = new Map<string, SportsTeam>();
+
+  for (const team of teams) {
+    const name = String(team.name_en ?? team.name ?? "").trim();
+
+    if (!name || isPlaceholderSportsTeamName(name)) {
+      continue;
+    }
+
+    const providerTeamId = slugify(
+      String(team.team_id ?? team.id ?? team.fifa_code ?? name),
+    );
+
+    if (!providerTeamId) {
+      continue;
+    }
+
+    teamsById.set(`${tournamentId}:${providerTeamId}`, {
+      id: `${tournamentId}:${providerTeamId}`,
+      tournamentId,
+      providerTeamId,
+      name,
+      shortName: team.fifa_code,
+      logoUrl: team.flag_url ?? team.flag ?? team.logo,
+    });
+  }
+
+  return Array.from(teamsById.values()).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+}
+
+export function withWorldCup26QualifiedTeams(
+  snapshot: NormalizedSportsSync,
+  teams: SportsTeam[] | null,
+): NormalizedSportsSync {
+  if (!teams?.length) {
+    return snapshot;
+  }
+
+  return {
+    ...snapshot,
+    tournament: {
+      ...snapshot.tournament,
+      teamCount: teams.length,
+    },
+    teams,
+  };
+}
+
 function extractMatches(
   payload:
     | WorldCup26Match[]
@@ -87,6 +173,32 @@ function extractMatches(
     Array.isArray((payload.data as { matches?: unknown }).matches)
   ) {
     return (payload.data as { matches: WorldCup26Match[] }).matches;
+  }
+
+  return [];
+}
+
+function extractTeams(
+  payload: WorldCup26Team[] | { data?: unknown; teams?: WorldCup26Team[] },
+) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload.teams)) {
+    return payload.teams;
+  }
+
+  if (Array.isArray(payload.data)) {
+    return payload.data as WorldCup26Team[];
+  }
+
+  if (
+    payload.data &&
+    typeof payload.data === "object" &&
+    Array.isArray((payload.data as { teams?: unknown }).teams)
+  ) {
+    return (payload.data as { teams: WorldCup26Team[] }).teams;
   }
 
   return [];
@@ -127,4 +239,12 @@ function parseScore(value?: string) {
     home: Number.isFinite(home) ? home : undefined,
     away: Number.isFinite(away) ? away : undefined,
   };
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
 }

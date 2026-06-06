@@ -194,6 +194,9 @@ Important current behavior:
   can auto-create a blank white overflow page.
 - Sports data from Big Balls Data is also cached in Supabase. The browser reads
   cached `sports_*` rows and never calls the provider directly.
+- World Cup 2026 sync uses Big Balls for fixtures/live scores and
+  `worldcup26.ir/get/teams` for the qualified 48-team list when available.
+  The endpoint can be overridden with `WORLDCUP26_TEAMS_API_URL`.
 - Provider placeholder teams from future knockout fixtures, such as
   `Group E Winner`, `Group B 2nd Place`, or `THIRD PLACE GROUP ...`, are
   filtered by `src/lib/sports-team-utils.ts`. They can remain as fixture labels
