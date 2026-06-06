@@ -6,9 +6,9 @@ import {
   Clock3,
   MapPin,
   Radio,
-  Shield,
   Timer,
   Trophy,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -93,9 +93,18 @@ export function LiveScoresPage() {
   return (
     <AppShell>
       <div className="mx-auto grid max-w-7xl gap-5">
-        <section className="overflow-hidden rounded-lg border border-border bg-[radial-gradient(circle_at_top_left,rgba(24,195,126,0.18),transparent_38%),linear-gradient(135deg,#111a1f,#121016_58%,#090a0d)] p-4 shadow-2xl shadow-black/20 sm:p-6">
+        <section
+          className="overflow-hidden rounded-lg border border-white/10 bg-surface p-4 shadow-2xl shadow-black/30 sm:p-6"
+          style={{
+            backgroundImage:
+              "linear-gradient(90deg, rgba(8,9,11,0.94), rgba(8,9,11,0.72) 42%, rgba(8,9,11,0.9)), url('/brand/world-cup-stadium-night.png')",
+            backgroundPosition: "center",
+            backgroundSize: "cover",
+          }}
+        >
           <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="flex min-h-[380px] flex-col justify-between rounded-lg border border-white/10 bg-white/[0.04] p-4 backdrop-blur sm:p-5">
+            <div className="relative flex min-h-[420px] flex-col justify-between overflow-hidden rounded-lg border border-white/10 bg-black/35 p-4 backdrop-blur sm:p-5">
+              <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent" />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-accent">
@@ -105,7 +114,7 @@ export function LiveScoresPage() {
                     Live Scores
                   </h1>
                 </div>
-                <div className="flex items-center gap-2 rounded-full border border-white/10 bg-background/60 px-3 py-2 text-sm text-muted">
+                <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-2 text-sm text-muted shadow-lg shadow-black/20">
                   <Radio
                     aria-hidden
                     className="h-4 w-4 text-accent"
@@ -117,10 +126,10 @@ export function LiveScoresPage() {
               <div className="mt-5 grid grid-cols-7 gap-2">
                 {dateChips.map((chip) => (
                   <button
-                    className={`grid min-h-16 place-items-center rounded-full border px-2 text-center transition-colors ${
+                    className={`grid min-h-16 place-items-center rounded-full border px-2 text-center transition-all ${
                       selectedDate === chip.key
-                        ? "border-accent bg-accent text-accent-foreground"
-                        : "border-white/10 bg-background/45 text-foreground hover:border-accent/60"
+                        ? "scale-[1.03] border-accent bg-accent text-accent-foreground shadow-lg shadow-accent/20"
+                        : "border-white/10 bg-black/45 text-foreground hover:border-accent/60 hover:bg-black/65"
                     }`}
                     key={chip.key}
                     onClick={() => setSelectedDate(chip.key)}
@@ -165,9 +174,9 @@ export function LiveScoresPage() {
                 value={String(snapshot?.fixtures.length ?? 0)}
               />
               <ScoreStatCard
-                icon={Shield}
-                label="Upcoming"
-                value={String(snapshot?.upcoming.length ?? 0)}
+                icon={Users}
+                label="Teams in motion"
+                value={String(countTeams(snapshot?.fixtures ?? []))}
               />
             </div>
           </div>
@@ -244,8 +253,9 @@ function HeroScoreCard({ fixture }: { fixture: SportsFixture }) {
   const awayLogo = getTeamLogo(fixture, "away");
 
   return (
-    <div className="mt-6 rounded-[28px] border border-white/15 bg-[linear-gradient(135deg,rgba(229,244,252,0.16),rgba(255,255,255,0.04))] p-4 shadow-xl shadow-black/20">
-      <div className="mx-auto mb-4 flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-black">
+    <div className="relative mt-6 overflow-hidden rounded-[28px] border border-white/15 bg-[linear-gradient(135deg,rgba(229,244,252,0.18),rgba(24,195,126,0.08)_48%,rgba(255,255,255,0.04))] p-4 shadow-xl shadow-black/30">
+      <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full border border-accent/20 bg-accent/10 blur-2xl" />
+      <div className="mx-auto mb-4 flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-black shadow-lg shadow-black/20">
         <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
         {formatStatus(fixture)}
       </div>
@@ -253,6 +263,10 @@ function HeroScoreCard({ fixture }: { fixture: SportsFixture }) {
         <TeamBlock logoUrl={homeLogo} name={fixture.homeTeamName} />
         <ScorePill fixture={fixture} />
         <TeamBlock logoUrl={awayLogo} name={fixture.awayTeamName} />
+      </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <TeamSpotlight logoUrl={homeLogo} name={fixture.homeTeamName} />
+        <TeamSpotlight logoUrl={awayLogo} name={fixture.awayTeamName} align="right" />
       </div>
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-background/45 px-3 py-3 text-sm text-muted">
         <span className="inline-flex items-center gap-2">
@@ -278,8 +292,10 @@ function CompactMatchCard({
 }) {
   return (
     <button
-      className={`rounded-lg border bg-surface-raised p-4 text-left transition-colors ${
-        isSelected ? "border-accent" : "border-border hover:border-accent/50"
+      className={`group overflow-hidden rounded-lg border bg-surface-raised p-4 text-left transition-all ${
+        isSelected
+          ? "border-accent shadow-lg shadow-accent/10"
+          : "border-border hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-lg hover:shadow-black/20"
       }`}
       onClick={onSelect}
       type="button"
@@ -289,7 +305,7 @@ function CompactMatchCard({
         <ScorePill fixture={fixture} compact />
         <TeamLine fixture={fixture} side="away" align="right" />
       </div>
-      <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/5 pt-3 text-xs text-muted">
         <span>{formatKickoff(fixture.kickoffUtc)}</span>
         <span>{formatStatus(fixture)}</span>
       </div>
@@ -308,8 +324,10 @@ function UpcomingCard({
 }) {
   return (
     <button
-      className={`rounded-lg border bg-surface-raised p-4 text-left transition-colors ${
-        isSelected ? "border-accent" : "border-border hover:border-accent/50"
+      className={`group overflow-hidden rounded-lg border bg-surface-raised p-4 text-left transition-all ${
+        isSelected
+          ? "border-accent shadow-lg shadow-accent/10"
+          : "border-border hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-lg hover:shadow-black/20"
       }`}
       onClick={onSelect}
       type="button"
@@ -319,7 +337,7 @@ function UpcomingCard({
         <ScorePill fixture={fixture} compact />
         <TeamLine fixture={fixture} side="away" align="right" />
       </div>
-      <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/5 pt-3 text-xs text-muted">
         <span>{formatKickoff(fixture.kickoffUtc)}</span>
         <span>{formatStatus(fixture)}</span>
       </div>
@@ -342,7 +360,8 @@ function MatchDetailCard({ fixture }: { fixture: SportsFixture }) {
 
   return (
     <div className="grid gap-4">
-      <div className="rounded-[28px] border border-border bg-[linear-gradient(180deg,rgba(219,238,247,0.12),rgba(255,255,255,0.03))] p-4">
+      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(219,238,247,0.14),rgba(24,195,126,0.06)_52%,rgba(255,255,255,0.03))] p-4">
+        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent" />
         <div className="mx-auto mb-4 flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-black">
           <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
           {formatStatus(fixture)}
@@ -404,6 +423,43 @@ function TeamBlock({ logoUrl, name }: { logoUrl?: string; name: string }) {
   );
 }
 
+function TeamSpotlight({
+  align = "left",
+  logoUrl,
+  name,
+}: {
+  align?: "left" | "right";
+  logoUrl?: string;
+  name: string;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-3 ${
+        align === "right" ? "flex-row-reverse text-right" : ""
+      }`}
+    >
+      <div className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_50%_15%,rgba(255,255,255,0.28),rgba(24,195,126,0.16)_42%,rgba(8,9,11,0.9)_70%)]">
+        <div className="absolute top-2 h-4 w-4 rounded-full bg-white/80" />
+        <div className="absolute bottom-1 h-7 w-8 rounded-t-full bg-accent/85" />
+        {logoUrl ? (
+          <Image
+            alt=""
+            className="absolute bottom-1 right-1 h-5 w-5 rounded-full bg-white object-cover p-0.5"
+            height={20}
+            src={logoUrl}
+            unoptimized
+            width={20}
+          />
+        ) : null}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase text-accent">Team spotlight</p>
+        <p className="mt-1 truncate text-sm font-semibold text-foreground">{name}</p>
+      </div>
+    </div>
+  );
+}
+
 function TeamLine({
   align = "left",
   fixture,
@@ -442,8 +498,8 @@ function TeamLogo({
 }) {
   const className =
     size === "lg"
-      ? "h-14 w-14 shrink-0 rounded-full border border-white/20 bg-white object-cover p-1"
-      : "h-9 w-9 shrink-0 rounded-full border border-border bg-white object-cover p-1";
+      ? "h-16 w-16 shrink-0 rounded-full border border-white/20 bg-white object-cover p-1 shadow-lg shadow-black/25"
+      : "h-9 w-9 shrink-0 rounded-full border border-border bg-white object-cover p-1 shadow-sm shadow-black/20";
 
   if (logoUrl) {
     return (
@@ -502,7 +558,8 @@ function ScoreStatCard({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <div className="relative overflow-hidden rounded-lg border border-white/10 bg-black/35 p-4 backdrop-blur">
+      <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-accent/10 blur-2xl" />
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted">{label}</p>
         <div className="grid h-9 w-9 place-items-center rounded-md bg-accent/10 text-accent">
@@ -512,6 +569,17 @@ function ScoreStatCard({
       <p className="mt-4 text-3xl font-semibold text-foreground">{value}</p>
     </div>
   );
+}
+
+function countTeams(fixtures: SportsFixture[]) {
+  const teams = new Set<string>();
+
+  for (const fixture of fixtures) {
+    teams.add(fixture.homeTeamName);
+    teams.add(fixture.awayTeamName);
+  }
+
+  return teams.size;
 }
 
 function SectionTitle({ count, title }: { count: number; title: string }) {

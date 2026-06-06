@@ -57,16 +57,62 @@ export function GET(request: NextRequest) {
                   alignItems: "center",
                   background: "#18c37e",
                   borderRadius: 18,
-                  color: "#03140d",
                   display: "flex",
-                  fontSize: 38,
-                  fontWeight: 900,
                   height: 76,
                   justifyContent: "center",
+                  position: "relative",
                   width: 76,
                 }}
               >
-                FP
+                <div
+                  style={{
+                    background: "#07110d",
+                    borderRadius: 8,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    height: 52,
+                    justifyContent: "center",
+                    padding: "0 12px",
+                    width: 40,
+                  }}
+                >
+                  <div style={{ background: "#f8fafc", borderRadius: 6, height: 5, width: 28 }} />
+                  <div style={{ background: "#f8fafc", borderRadius: 6, height: 5, width: 18 }} />
+                  <div
+                    style={{
+                      color: "#18c37e",
+                      fontSize: 28,
+                      fontWeight: 900,
+                      lineHeight: 1,
+                      marginTop: -2,
+                    }}
+                  >
+                    ✓
+                  </div>
+                </div>
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    borderRadius: 999,
+                    height: 8,
+                    left: 14,
+                    position: "absolute",
+                    top: 13,
+                    width: 8,
+                  }}
+                />
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    borderRadius: 999,
+                    bottom: 13,
+                    height: 8,
+                    position: "absolute",
+                    right: 14,
+                    width: 8,
+                  }}
+                />
               </div>
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <div style={{ fontSize: 34, fontWeight: 800 }}>Fan Picks</div>

@@ -19,6 +19,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 
+import { FanPicksMark } from "@/components/brand/fan-picks-mark";
 import { LoginScreen } from "@/components/auth/login-screen";
 import { useGuestSession } from "@/components/auth/guest-session-provider";
 import { getPostLogoutHref } from "@/lib/auth-navigation.mjs";
@@ -121,9 +122,7 @@ export function AppShell({ children }: AppShellProps) {
       <div className="mx-auto flex min-h-screen w-full max-w-[1440px]">
         <aside className="hidden w-64 shrink-0 border-r border-border bg-background px-5 py-5 lg:flex lg:flex-col">
           <Link className="flex min-h-11 items-center gap-3" href="/championships">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground">
-              <Trophy aria-hidden className="h-5 w-5" />
-            </div>
+            <FanPicksMark className="h-10 w-10 shrink-0" />
             <div>
               <p className="text-base font-semibold">Fan Picks</p>
               <p className="text-xs text-muted">Back your opinions</p>
@@ -178,9 +177,7 @@ export function AppShell({ children }: AppShellProps) {
           <header className="sticky top-0 z-20 border-b border-border bg-background/92 px-4 py-3 backdrop-blur sm:px-6 lg:hidden">
             <div className="flex min-h-12 items-center justify-between gap-3">
               <Link className="flex min-w-0 items-center gap-3" href="/championships">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground">
-                  <Trophy aria-hidden className="h-5 w-5" />
-                </div>
+                <FanPicksMark className="h-10 w-10 shrink-0" />
                 <span className="truncate text-lg font-semibold text-foreground">
                   Fan Picks
                 </span>
@@ -302,7 +299,7 @@ function AppNavigationLoader({ isVisible }: { isVisible: boolean }) {
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="grid w-full max-w-xs place-items-center gap-4 rounded-lg border border-border bg-surface/96 p-6 text-center shadow-2xl shadow-black/40">
           <div className="relative grid h-16 w-16 place-items-center rounded-lg bg-accent text-accent-foreground">
-            <Trophy aria-hidden className="h-7 w-7" />
+            <FanPicksMark className="h-16 w-16" />
             <span className="absolute -inset-2 rounded-xl border border-accent/35 animate-[loader-ring_1.2s_ease-out_infinite]" />
           </div>
           <div>

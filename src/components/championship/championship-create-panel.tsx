@@ -42,6 +42,7 @@ export function ChampionshipCreatePanel({
   const [lockDate, setLockDate] = useState(championshipTemplates[0].lockDate);
   const [customBets, setCustomBets] = useState<CustomBetDraft[]>([]);
   const [createdName, setCreatedName] = useState("");
+  const [createError, setCreateError] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [sportsTournaments, setSportsTournaments] = useState<
     SportsTournamentSnapshot[]
@@ -159,6 +160,7 @@ export function ChampionshipCreatePanel({
     }
 
     setIsCreating(true);
+    setCreateError("");
     const formData = new FormData(event.currentTarget);
     try {
       const championship = await createChampionship(
@@ -186,6 +188,12 @@ export function ChampionshipCreatePanel({
 
       setCreatedName(championship.name);
       onCreated?.(championship);
+    } catch (error) {
+      setCreateError(
+        error instanceof Error
+          ? error.message
+          : "Pool could not be created. Please try again.",
+      );
     } finally {
       setIsCreating(false);
     }
@@ -203,6 +211,11 @@ export function ChampionshipCreatePanel({
         />
         <Badge variant="accent">Friends</Badge>
       </div>
+      {createError ? (
+        <p className="mt-4 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+          {createError}
+        </p>
+      ) : null}
 
       <form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
         <label className="grid gap-2">

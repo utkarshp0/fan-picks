@@ -73,7 +73,10 @@ The Supabase adapter is `src/lib/pool-supabase.ts`.
 It owns database reads/writes:
 
 - Fetch pools with participants, bets, predictions, versions, audit events.
-- Create pools.
+- Create pools through `POST /api/pools/create`. The server validates the
+  Supabase Auth user and writes the pool, creator participant, bets, and audit
+  events with the service role. If any required write fails, the new pool row is
+  removed so an orphan pool cannot later disappear from `My pools`.
 - Upsert participants.
 - Soft-leave participants.
 - Replace the active pool bet list.
@@ -260,6 +263,25 @@ WhatsApp, X/Twitter, Slack, and similar link unfurlers.
 
 `src/lib/share-metadata.ts` resolves the app base URL from
 `NEXT_PUBLIC_APP_URL`, `VERCEL_URL`, or `https://fan-picks.vercel.app`.
+
+## Brand Assets
+
+The reusable product mark lives in
+`src/components/brand/fan-picks-mark.tsx`. Use it for app chrome, auth, loading
+states, and other branded surfaces.
+
+`public/icon.svg` mirrors the same mark for favicon/PWA usage.
+`src/app/api/share-image/route.tsx` uses a matching mark inside generated
+Open Graph preview images.
+
+The tournament visual asset lives at
+`public/brand/world-cup-stadium-night.png`. It is an AI-generated,
+logo-free stadium scene used as controlled background texture for Live Scores
+and Match Picks. Keep real player/captain imagery out of the UI unless a
+licensed and reliable data source is added.
+
+Trophy icons should still be used when the UI means pool, tournament, or
+competition. They should not be used as the Fan Picks product logo.
 
 ## UI Interaction Pattern
 

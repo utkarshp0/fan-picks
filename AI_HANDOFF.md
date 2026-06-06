@@ -1,6 +1,6 @@
 # Fan Picks AI Handoff
 
-Last updated: 2026-06-04.
+Last updated: 2026-06-06.
 
 This file is the first thing a future AI assistant should read before changing
 Fan Picks. It captures the product intent, current architecture, data model,
@@ -162,6 +162,11 @@ Important current behavior:
 - `refreshChampionshipsFromSupabase()` fetches remote pools and writes the local
   cache.
 - It no longer auto-publishes local pools to Supabase.
+- Pool creation goes through `POST /api/pools/create`. The server validates the
+  Supabase Auth user, then writes the pool, creator participant, pool bets, and
+  audit events with the service role. If any required write fails, it deletes
+  the new pool row and returns an error so the UI does not show a fake-created
+  pool that later disappears.
 - Pool creation, joining, leaving, custom bets, audit events, prediction drafts,
   prediction versions, locks, and fingerprints are persisted to Supabase.
 - Pool invite links use `/championships/join?code=...`. Logged-in users who
@@ -176,6 +181,7 @@ Relevant files:
 
 - `src/lib/championship-store.ts`
 - `src/lib/pool-supabase.ts`
+- `src/lib/server-pools.ts`
 - `src/lib/server-prediction-locks.ts`
 - `src/lib/server-match-picks.ts`
 - `src/lib/server-live-scores.ts`
@@ -316,6 +322,10 @@ Product rules:
 - Pool and Match Pick join links emit Open Graph/Twitter metadata with a
   generated branded preview image from `/api/share-image`, so platforms such as
   WhatsApp and X/Twitter can render a rich card instead of only a plain URL.
+- Match Picks and Live Scores use a logo-free generated stadium artwork from
+  `public/brand/world-cup-stadium-night.png` plus stylized team spotlight cards
+  for visual polish. Do not introduce real player/captain photos unless the app
+  has a licensed, reliable source for those images.
 - Results are scored from synced `sports_fixtures`, not user input.
 - Winner copy should be light and funny, for example:
   `Nobody got this one. Football chose chaos.`
@@ -365,6 +375,7 @@ Run these for a clean deployment:
 - `supabase/sports-data-migration.sql`
 - `supabase/match-picks-migration.sql`
 - `supabase/rls-migration.sql`
+- `supabase/pool-creator-participant-backfill.sql`
 
 If production shows `infinite recursion detected in policy for relation
 "participants"`, run:
@@ -377,6 +388,11 @@ data.
 `pool-bets-migration.sql` includes a delete policy, but bet add/remove no
 longer depends on browser-side delete permission because the app uses the
 server sync route.
+
+`pool-creator-participant-backfill.sql` repairs historical orphaned pools where
+`championships.created_by` exists but the creator participant row was never
+persisted. It does not modify pools where the creator has a participant row with
+`left_at`.
 
 Legacy file:
 
@@ -505,6 +521,18 @@ Quick Supabase Auth smoke test from Node can use the anon key and
 
 Keep this short and newest-first. Record changes that affect future AI context.
 
+- 2026-06-06: Replaced the trophy-style product logo with a reusable Fan Picks
+  brand mark in `src/components/brand/fan-picks-mark.tsx`, mirrored it in
+  `public/icon.svg`, wired it into app chrome/auth/loading states, and updated
+  generated share preview imagery.
+- 2026-06-06: Added a logo-free generated World Cup-style stadium visual asset
+  and applied it to Live Scores and Match Picks with richer fixture cards and
+  stylized team spotlight visuals.
+- 2026-06-06: Fixed pool creation integrity by routing creates through
+  `POST /api/pools/create`, requiring an active creator participant before
+  success, cleaning up failed partial creates, showing create errors in the UI,
+  and adding `supabase/pool-creator-participant-backfill.sql` for historical
+  orphaned creator pools.
 - 2026-06-06: Added rich invite links for Pools and Match Picks with
   `/championships/join?code=...` and `/match-picks/join?code=...`, auto-join
   for logged-in users, invite-aware auth messaging, Open Graph/Twitter metadata,
@@ -572,6 +600,10 @@ Keep this short and newest-first. Record changes that affect future AI context.
 
 - Keep the app dense, simple, and functional.
 - Do not turn it into a marketing landing page.
+- Use `src/components/brand/fan-picks-mark.tsx` as the Fan Picks brand mark in
+  app chrome, auth, loading states, and branded surfaces. `public/icon.svg`
+  mirrors that mark for favicon/PWA usage. Use trophy icons only when the icon
+  means tournament/pool, not as the product logo.
 - Do not add nested cards inside cards.
 - Cards should be subtle with small radii.
 - Use lucide icons for buttons where possible.

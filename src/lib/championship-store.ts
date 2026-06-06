@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 
 import { getChampionshipTemplate } from "@/data/templates";
 import {
+  canUsePoolSupabase,
   createSupabasePool,
   fetchSupabasePools,
   joinSupabasePool,
@@ -123,8 +124,17 @@ export async function createChampionship(
     ],
   };
 
-  writeChampionships([championship, ...getChampionshipSnapshot()]);
-  await createSupabasePool(championship, creator);
+  if (canUsePoolSupabase()) {
+    const createResult = await createSupabasePool(championship, creator);
+
+    if (!createResult.ok) {
+      throw new Error(createResult.message);
+    }
+
+    writeChampionships([createResult.championship, ...getChampionshipSnapshot()]);
+  } else {
+    writeChampionships([championship, ...getChampionshipSnapshot()]);
+  }
   await refreshChampionshipsFromSupabase();
 
   return (

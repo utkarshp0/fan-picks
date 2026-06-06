@@ -83,6 +83,10 @@ type DbPoolBet = {
   sort_order: number;
 };
 
+type CreatePoolResult =
+  | { ok: true; championship: Championship; message: string }
+  | { ok: false; message: string };
+
 export function canUsePoolSupabase() {
   return isSupabaseConfigured();
 }
@@ -136,44 +140,34 @@ export async function fetchSupabasePools() {
 export async function createSupabasePool(
   championship: Championship,
   creator: AnonymousProfile,
-) {
+): Promise<CreatePoolResult> {
   if (!canUsePoolSupabase()) {
-    return null;
+    return { ok: false, message: "Supabase is not configured." };
   }
 
   const supabase = createSupabaseBrowserClient();
-  await syncPoolProfile(creator);
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const response = await fetch("/api/pools/create", {
+    body: JSON.stringify({ championship, creator }),
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${session?.access_token ?? ""}`,
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+  const result = (await response.json()) as
+    | { ok: true; championship: Championship; message: string }
+    | { ok: false; message: string; status?: number };
 
-  const { data, error } = await supabase
-    .from("championships")
-    .upsert({
-      id: championship.id,
-      template_id: championship.tournamentId,
-      name: championship.name,
-      slug: championship.slug,
-      invite_code: championship.inviteCode,
-      status: championship.status,
-      start_date: championship.startDate,
-      lock_date: championship.lockDate,
-      is_public: true,
-      created_by: creator.id,
-      created_at: championship.createdAt,
-    }, { ignoreDuplicates: true, onConflict: "id" })
-    .select("id")
-    .single();
-
-  if (error && error.code !== "PGRST116") {
-    console.warn("Supabase pool create failed", error?.message);
-    return null;
+  if (!response.ok || !result.ok) {
+    console.warn("Supabase pool create failed", result.message);
+    return { ok: false, message: result.message };
   }
 
-  const remoteId = (data?.id as string | undefined) ?? championship.id;
-
-  await upsertPoolBets(championship.id, championship.bets);
-  await upsertParticipant(championship.id, championship.participants[0]);
-  await insertAuditEvents(championship.id, championship.auditLog);
-
-  return remoteId;
+  return { ok: true, championship: result.championship, message: result.message };
 }
 
 export async function joinSupabasePool(
@@ -404,38 +398,6 @@ async function fetchPoolBetsByChampionshipId(championshipIds: string[]) {
   }
 
   return betsByChampionshipId;
-}
-
-async function upsertPoolBets(
-  championshipId: string,
-  bets: PredictionCategory[],
-) {
-  if (bets.length === 0 || !canUsePoolSupabase()) {
-    return;
-  }
-
-  const supabase = createSupabaseBrowserClient();
-  const { error } = await supabase.from("pool_bets").upsert(
-    bets.map((bet, index) => ({
-      championship_id: championshipId,
-      bet_id: bet.id,
-      name: bet.name,
-      type: bet.type,
-      prompt: bet.prompt,
-      selection_count: bet.selectionCount,
-      scoring_note: bet.scoringNote,
-      choices: bet.choices ?? null,
-      source: bet.source,
-      sort_order: index,
-    })),
-    { onConflict: "championship_id,bet_id" },
-  );
-
-  if (error) {
-    if (!isMissingPoolBetsTable(error.message)) {
-      console.warn("Supabase pool bets save failed", error.message);
-    }
-  }
 }
 
 async function upsertParticipant(

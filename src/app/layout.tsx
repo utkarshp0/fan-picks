@@ -27,6 +27,11 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  icons: {
+    apple: "/icon.svg",
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+  },
   manifest: "/manifest.webmanifest",
 };
 

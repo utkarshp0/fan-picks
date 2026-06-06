@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { LogIn, Trophy, UserPlus } from "lucide-react";
+import { LogIn, UserPlus } from "lucide-react";
 
+import { FanPicksMark } from "@/components/brand/fan-picks-mark";
 import { useGuestSession } from "@/components/auth/guest-session-provider";
 import { Button } from "@/components/ui/button";
 
@@ -39,9 +40,7 @@ export function LoginScreen({
   return (
     <main className="grid min-h-screen place-items-center bg-background px-4 text-foreground">
       <section className="w-full max-w-md rounded-lg border border-border bg-surface p-5">
-        <div className="grid h-12 w-12 place-items-center rounded-md bg-accent text-accent-foreground">
-          <Trophy aria-hidden className="h-6 w-6" />
-        </div>
+        <FanPicksMark className="h-12 w-12" />
         <h1 className="mt-5 text-3xl font-semibold">
           {mode === "login" ? "Login" : "Sign up"}
         </h1>

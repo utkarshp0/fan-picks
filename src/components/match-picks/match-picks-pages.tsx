@@ -17,6 +17,7 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -47,6 +48,7 @@ import type {
   MatchPickRoom,
   MatchPickType,
 } from "@/types/match-picks";
+import type { SportsFixture } from "@/types/sports-data";
 
 type RoomTab = "picks" | "participants" | "audit" | "results";
 
@@ -553,7 +555,15 @@ function RoomHeader({
   }
 
   return (
-    <section className="grid gap-4 rounded-lg border border-border bg-surface p-4">
+    <section
+      className="grid gap-4 overflow-hidden rounded-lg border border-white/10 bg-surface p-4"
+      style={{
+        backgroundImage:
+          "linear-gradient(90deg, rgba(17,19,24,0.98), rgba(17,19,24,0.84)), url('/brand/world-cup-stadium-night.png')",
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }}
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <BadgeText>{room.status}</BadgeText>
@@ -586,6 +596,7 @@ function RoomHeader({
           ) : null}
         </div>
       </div>
+      <FixtureShowcase fixture={room.fixture} />
       <div className="grid gap-3 md:grid-cols-3">
         <InfoTile icon={CalendarDays} label="Kickoff" value={formatIst(room.kickoffAt)} />
         <InfoTile icon={Lock} label="Picks lock" value={formatIst(room.lockAt)} />
@@ -883,7 +894,8 @@ function RoomCard({
   room: MatchPickRoom;
 }) {
   return (
-    <div className="grid gap-3 rounded-lg border border-border bg-surface-raised p-4">
+    <div className="grid gap-3 overflow-hidden rounded-lg border border-border bg-surface-raised p-4 transition-all hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-lg hover:shadow-black/20">
+      <MiniFixtureVisual fixture={room.fixture} />
       <div className="flex items-start justify-between gap-3">
         <div>
           <BadgeText>{room.status}</BadgeText>
@@ -927,19 +939,15 @@ function FixtureSelectCard({
   return (
     <button
       className={cn(
-        "rounded-lg border bg-surface-raised p-4 text-left transition-colors",
-        isSelected ? "border-accent" : "border-border hover:border-accent/60",
+        "group overflow-hidden rounded-lg border bg-surface-raised p-4 text-left transition-all",
+        isSelected
+          ? "border-accent shadow-lg shadow-accent/10"
+          : "border-border hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-lg hover:shadow-black/20",
       )}
       onClick={onSelect}
       type="button"
     >
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-        <TeamName name={item.fixture.homeTeamName} />
-        <span className="rounded-md bg-background px-3 py-2 text-sm font-semibold text-foreground">
-          vs
-        </span>
-        <TeamName align="right" name={item.fixture.awayTeamName} />
-      </div>
+      <MiniFixtureVisual fixture={item.fixture} />
       <div className="mt-4 grid gap-2 text-sm text-muted sm:grid-cols-2">
         <span className="inline-flex items-center gap-2">
           <Clock3 aria-hidden className="h-4 w-4 text-accent" />
@@ -993,7 +1001,15 @@ function PageHero({
   title: string;
 }) {
   return (
-    <section className="rounded-lg border border-border bg-surface p-4 sm:p-6">
+    <section
+      className="overflow-hidden rounded-lg border border-white/10 bg-surface p-4 sm:p-6"
+      style={{
+        backgroundImage:
+          "linear-gradient(90deg, rgba(17,19,24,0.96), rgba(17,19,24,0.78)), url('/brand/world-cup-stadium-night.png')",
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }}
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-accent">{eyebrow}</p>
@@ -1118,23 +1134,174 @@ function BadgeText({ children }: { children: ReactNode }) {
   );
 }
 
-function TeamName({
+function FixtureShowcase({ fixture }: { fixture: SportsFixture }) {
+  return (
+    <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(24,195,126,0.07)_50%,rgba(0,0,0,0.35))] p-4 shadow-xl shadow-black/25">
+      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent" />
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+        <VisualTeamBlock
+          logoUrl={getMatchTeamLogo(fixture, "home")}
+          name={fixture.homeTeamName}
+        />
+        <span className="rounded-2xl border border-white/10 bg-white px-5 py-3 text-lg font-black text-black shadow-lg shadow-black/20">
+          vs
+        </span>
+        <VisualTeamBlock
+          align="right"
+          logoUrl={getMatchTeamLogo(fixture, "away")}
+          name={fixture.awayTeamName}
+        />
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <TeamSpotlightCard
+          logoUrl={getMatchTeamLogo(fixture, "home")}
+          name={fixture.homeTeamName}
+        />
+        <TeamSpotlightCard
+          align="right"
+          logoUrl={getMatchTeamLogo(fixture, "away")}
+          name={fixture.awayTeamName}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MiniFixtureVisual({ fixture }: { fixture: SportsFixture }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(24,195,126,0.05))] p-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+        <VisualTeamLine logoUrl={getMatchTeamLogo(fixture, "home")} name={fixture.homeTeamName} />
+        <span className="rounded-lg bg-background px-3 py-2 text-xs font-black uppercase text-foreground">
+          vs
+        </span>
+        <VisualTeamLine
+          align="right"
+          logoUrl={getMatchTeamLogo(fixture, "away")}
+          name={fixture.awayTeamName}
+        />
+      </div>
+    </div>
+  );
+}
+
+function VisualTeamBlock({
   align = "left",
+  logoUrl,
   name,
 }: {
   align?: "left" | "right";
+  logoUrl?: string;
   name: string;
 }) {
   return (
-    <span
+    <div className={cn("grid min-w-0 gap-2", align === "right" && "justify-items-end text-right")}>
+      <TeamBadge logoUrl={logoUrl} name={name} size="lg" />
+      <p className="max-w-40 text-base font-semibold leading-tight text-foreground">{name}</p>
+    </div>
+  );
+}
+
+function VisualTeamLine({
+  align = "left",
+  logoUrl,
+  name,
+}: {
+  align?: "left" | "right";
+  logoUrl?: string;
+  name: string;
+}) {
+  return (
+    <div className={cn("flex min-w-0 items-center gap-2", align === "right" && "justify-end text-right")}>
+      {align === "right" ? null : <TeamBadge logoUrl={logoUrl} name={name} />}
+      <span className="min-w-0 truncate text-sm font-semibold text-foreground">{name}</span>
+      {align === "right" ? <TeamBadge logoUrl={logoUrl} name={name} /> : null}
+    </div>
+  );
+}
+
+function TeamSpotlightCard({
+  align = "left",
+  logoUrl,
+  name,
+}: {
+  align?: "left" | "right";
+  logoUrl?: string;
+  name: string;
+}) {
+  return (
+    <div
       className={cn(
-        "min-w-0 truncate text-sm font-semibold text-foreground",
-        align === "right" && "text-right",
+        "flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-3",
+        align === "right" && "flex-row-reverse text-right",
       )}
     >
-      {name}
-    </span>
+      <div className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_50%_15%,rgba(255,255,255,0.3),rgba(24,195,126,0.18)_42%,rgba(8,9,11,0.92)_70%)]">
+        <div className="absolute top-2 h-4 w-4 rounded-full bg-white/80" />
+        <div className="absolute bottom-1 h-7 w-8 rounded-t-full bg-accent/85" />
+        {logoUrl ? (
+          <Image
+            alt=""
+            className="absolute bottom-1 right-1 h-5 w-5 rounded-full bg-white object-cover p-0.5"
+            height={20}
+            src={logoUrl}
+            unoptimized
+            width={20}
+          />
+        ) : null}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase text-accent">Match spotlight</p>
+        <p className="mt-1 truncate text-sm font-semibold text-foreground">{name}</p>
+      </div>
+    </div>
   );
+}
+
+function TeamBadge({
+  logoUrl,
+  name,
+  size = "sm",
+}: {
+  logoUrl?: string;
+  name: string;
+  size?: "sm" | "lg";
+}) {
+  const className =
+    size === "lg"
+      ? "h-16 w-16 shrink-0 rounded-full border border-white/20 bg-white object-cover p-1 shadow-lg shadow-black/25"
+      : "h-9 w-9 shrink-0 rounded-full border border-border bg-white object-cover p-1 shadow-sm shadow-black/20";
+
+  if (logoUrl) {
+    return (
+      <Image
+        alt=""
+        className={className}
+        height={size === "lg" ? 64 : 36}
+        src={logoUrl}
+        unoptimized
+        width={size === "lg" ? 64 : 36}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${className} grid place-items-center bg-accent text-sm font-semibold text-accent-foreground`}
+    >
+      {name.slice(0, 2).toUpperCase()}
+    </div>
+  );
+}
+
+function getMatchTeamLogo(fixture: SportsFixture, side: "home" | "away") {
+  const raw = fixture.raw as {
+    home_team?: { flag_url?: string; logo_url?: string; logo?: string };
+    away_team?: { flag_url?: string; logo_url?: string; logo?: string };
+  };
+  const team = side === "home" ? raw.home_team : raw.away_team;
+
+  return team?.flag_url ?? team?.logo_url ?? team?.logo;
 }
 
 function getEmptyAnswer(type: MatchPickType): MatchPickAnswer {

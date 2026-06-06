@@ -1,4 +1,6 @@
-import { LoaderCircle, Trophy } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
+
+import { FanPicksMark } from "@/components/brand/fan-picks-mark";
 
 export default function Loading() {
   return (
@@ -8,7 +10,7 @@ export default function Loading() {
       </div>
       <div className="grid w-full max-w-xs place-items-center gap-4 rounded-lg border border-border bg-surface p-6 text-center shadow-2xl shadow-black/40">
         <div className="relative grid h-16 w-16 place-items-center rounded-lg bg-accent text-accent-foreground">
-          <Trophy aria-hidden className="h-7 w-7" />
+          <FanPicksMark className="h-16 w-16" />
           <span className="absolute -inset-2 rounded-xl border border-accent/35 animate-[loader-ring_1.2s_ease-out_infinite]" />
         </div>
         <div>
