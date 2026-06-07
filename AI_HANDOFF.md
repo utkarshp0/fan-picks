@@ -403,6 +403,9 @@ Product rules:
 - Pool and Match Pick join links emit Open Graph/Twitter metadata with a
   generated branded preview image from `/api/share-image`, so platforms such as
   WhatsApp and X/Twitter can render a rich card instead of only a plain URL.
+- Invite preview images are code-specific and versioned through
+  `src/lib/share-metadata.ts`. Keep explicit width/height/type/alt metadata and
+  a banner-style generated image so WhatsApp does not fall back to plain text.
 - Match Picks and Live Scores use a logo-free generated stadium artwork from
   `public/brand/world-cup-stadium-night.png` plus stylized team spotlight cards
   for visual polish. Do not introduce real player/captain photos unless the app

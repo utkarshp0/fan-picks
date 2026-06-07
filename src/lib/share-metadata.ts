@@ -13,5 +13,34 @@ export function getAppBaseUrl() {
 }
 
 export function getShareImageUrl(kind: ShareInviteKind) {
-  return `${getAppBaseUrl()}/api/share-image?kind=${kind}`;
+  return createShareImageUrl(kind);
+}
+
+export function createShareImageUrl(kind: ShareInviteKind, inviteCode?: string) {
+  const url = new URL("/api/share-image", getAppBaseUrl());
+
+  url.searchParams.set("kind", kind);
+  url.searchParams.set("v", "2");
+
+  if (inviteCode) {
+    url.searchParams.set("code", inviteCode);
+  }
+
+  return url.toString();
+}
+
+export function createShareImageMetadata(
+  kind: ShareInviteKind,
+  inviteCode?: string,
+) {
+  return {
+    alt:
+      kind === "match"
+        ? "Fan Picks match prediction invite"
+        : "Fan Picks pool invite",
+    height: 630,
+    type: "image/png",
+    url: createShareImageUrl(kind, inviteCode),
+    width: 1200,
+  };
 }

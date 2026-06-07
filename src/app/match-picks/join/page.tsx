@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { MatchPickJoinPage } from "@/components/match-picks/match-picks-pages";
-import { getShareImageUrl } from "@/lib/share-metadata";
+import { createShareImageMetadata } from "@/lib/share-metadata";
 
 export async function generateMetadata({
   searchParams,
@@ -13,6 +13,7 @@ export async function generateMetadata({
   const description = code
     ? "Login or sign up to join this one-match prediction room before the lock time."
     : "Use your invite code to join a friendly one-match prediction room.";
+  const image = createShareImageMetadata("match", code);
 
   return {
     title,
@@ -20,14 +21,14 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      images: [getShareImageUrl("match")],
+      images: [image],
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [getShareImageUrl("match")],
+      images: [image.url],
     },
   };
 }

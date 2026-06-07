@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { JoinPoolPage } from "@/components/championship/pages/join-pool-page";
-import { getShareImageUrl } from "@/lib/share-metadata";
+import { createShareImageMetadata } from "@/lib/share-metadata";
 
 export async function generateMetadata({
   searchParams,
@@ -13,6 +13,7 @@ export async function generateMetadata({
   const description = code
     ? "Login or sign up to join the pool, make your picks, and keep every change transparent."
     : "Use your invite code to join a friendly Fan Picks pool.";
+  const image = createShareImageMetadata("pool", code);
 
   return {
     title,
@@ -20,14 +21,14 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      images: [getShareImageUrl("pool")],
+      images: [image],
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [getShareImageUrl("pool")],
+      images: [image.url],
     },
   };
 }

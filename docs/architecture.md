@@ -364,12 +364,15 @@ Lock-related audit types:
 ## Share Previews
 
 Pool and Match Pick join pages define Open Graph and Twitter metadata for rich
-platform previews. Both use `/api/share-image?kind=pool|match`, implemented in
-`src/app/api/share-image/route.tsx`, to generate a branded 1200x630 image for
-WhatsApp, X/Twitter, Slack, and similar link unfurlers.
+platform previews. Both use `/api/share-image?kind=pool|match&v=...&code=...`,
+implemented in `src/app/api/share-image/route.tsx`, to generate a branded
+1200x630 PNG banner for WhatsApp, X/Twitter, Slack, and similar link unfurlers.
 
 `src/lib/share-metadata.ts` resolves the app base URL from
 `NEXT_PUBLIC_APP_URL`, `VERCEL_URL`, or `https://fan-picks.vercel.app`.
+It also keeps invite image URLs code-specific and versioned so platforms with
+aggressive unfurl caches fetch a fresh preview. Keep explicit image width,
+height, type, and alt metadata on invite pages.
 
 ## Brand Assets
 
