@@ -13,7 +13,10 @@ import {
   isPastMatchPickLock,
   validateMatchPickAnswer,
 } from "../src/lib/match-pick-rules";
-import { matchPickRoomSelect } from "../src/lib/server-match-picks";
+import {
+  dedupeMatchPickFixtures,
+  matchPickRoomSelect,
+} from "../src/lib/server-match-picks";
 import type { SportsFixture } from "../src/types/sports-data";
 
 const fixture: SportsFixture = {
@@ -227,5 +230,52 @@ describe("Match Picks rules", () => {
     assert.match(message, /Make your pick before 11 Jun 2026, 10:30 pm IST/);
     assert.match(message, /Invite code: MP-ABC123/);
     assert.match(message, /https:\/\/fan-picks\.vercel\.app\/match-picks\/join\?code=MP-ABC123/);
+  });
+
+  it("dedupes upcoming fixture aliases by canonical teams and kickoff", () => {
+    const fixtures = dedupeMatchPickFixtures([
+      {
+        ...fixture,
+        id: "fixture-czechia",
+        awayTeamName: "Czechia",
+        homeTeamName: "South Korea",
+        kickoffUtc: "2026-06-12T02:00:00.000Z",
+      },
+      {
+        ...fixture,
+        id: "fixture-czech-republic",
+        awayTeamName: "Czech Republic",
+        homeTeamName: "South Korea",
+        kickoffUtc: "2026-06-12T02:00:00.000Z",
+        raw: { source: "big-balls-data" },
+      },
+      {
+        ...fixture,
+        id: "fixture-canada",
+        awayTeamName: "Bosnia and Herzegovina",
+        homeTeamName: "Canada",
+        kickoffUtc: "2026-06-12T19:00:00.000Z",
+      },
+    ]);
+
+    assert.deepEqual(
+      fixtures.map((item) => ({
+        awayTeamName: item.awayTeamName,
+        homeTeamName: item.homeTeamName,
+        id: item.id,
+      })),
+      [
+        {
+          awayTeamName: "Czech Republic",
+          homeTeamName: "South Korea",
+          id: "fixture-czech-republic",
+        },
+        {
+          awayTeamName: "Bosnia and Herzegovina",
+          homeTeamName: "Canada",
+          id: "fixture-canada",
+        },
+      ],
+    );
   });
 });

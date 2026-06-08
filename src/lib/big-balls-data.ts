@@ -1,5 +1,8 @@
 import type { SportsFixture, SportsTeam, SportsTournament } from "@/types/sports-data";
-import { isPlaceholderSportsTeamName } from "@/lib/sports-team-utils";
+import {
+  canonicalizeSportsTeamName,
+  isPlaceholderSportsTeamName,
+} from "@/lib/sports-team-utils";
 
 const defaultBaseUrl = "https://api.bigballsdata.com";
 const provider = "big-balls-data" as const;
@@ -204,7 +207,7 @@ export function normalizeBigBallsMatches(
   syncedAt: string,
 ): NormalizedSportsSync {
   const teamsById = new Map<string, SportsTeam>();
-  const fixtures = matches.flatMap((match) => {
+  const fixtures = dedupeSportsFixtures(matches.flatMap((match) => {
     const home = normalizeTeam(match.home ?? match.home_team ?? match.homeTeam);
     const away = normalizeTeam(match.away ?? match.away_team ?? match.awayTeam);
     const providerMatchId = String(match.id ?? match.match_id ?? "");
@@ -251,7 +254,7 @@ export function normalizeBigBallsMatches(
         lastSyncedAt: syncedAt,
       },
     ];
-  });
+  }));
   const teams = Array.from(teamsById.values()).sort((a, b) =>
     a.name.localeCompare(b.name),
   );
@@ -280,17 +283,40 @@ export function normalizeBigBallsMatches(
   };
 }
 
+function dedupeSportsFixtures(fixtures: SportsFixture[]) {
+  const fixturesByKey = new Map<string, SportsFixture>();
+
+  for (const fixture of fixtures) {
+    const key = [
+      fixture.tournamentId,
+      fixture.kickoffUtc ?? "",
+      fixture.homeTeamName.toLowerCase(),
+      fixture.awayTeamName.toLowerCase(),
+    ].join("|");
+
+    if (!fixturesByKey.has(key)) {
+      fixturesByKey.set(key, fixture);
+    }
+  }
+
+  return Array.from(fixturesByKey.values());
+}
+
 function normalizeTeam(value: string | BigBallsTeam | undefined) {
   if (typeof value === "string") {
+    const name = canonicalizeSportsTeamName(value);
+
     return {
-      id: value,
-      name: value,
+      id: name,
+      name,
     };
   }
 
+  const name = canonicalizeSportsTeamName(value?.name ?? "");
+
   return {
     id: value?.id ?? value?.short_name ?? value?.shortName ?? value?.name,
-    name: value?.name ?? "",
+    name,
     shortName: value?.short_name ?? value?.shortName ?? value?.abbreviation,
     logoUrl: value?.logo_url ?? value?.logoUrl ?? value?.flag_url,
   };

@@ -1,5 +1,8 @@
 import { createSupabaseServiceClient, isSupabaseServerConfigured } from "@/lib/supabase-server";
-import { isPlaceholderSportsTeamName } from "@/lib/sports-team-utils";
+import {
+  canonicalizeSportsTeamName,
+  isPlaceholderSportsTeamName,
+} from "@/lib/sports-team-utils";
 import type {
   NormalizedSportsSync,
   SportsLeagueSyncConfig,
@@ -214,6 +217,10 @@ async function fetchSportsFixturesByTournamentId(tournamentIds: string[]) {
     fixturesByTournamentId.set(row.tournament_id, current);
   }
 
+  for (const [tournamentId, fixtures] of fixturesByTournamentId) {
+    fixturesByTournamentId.set(tournamentId, dedupeSportsFixtures(fixtures));
+  }
+
   return fixturesByTournamentId;
 }
 
@@ -303,8 +310,8 @@ function mapSportsFixtureFromDb(row: DbSportsFixture): SportsFixture {
     providerMatchId: row.provider_match_id,
     sport: row.sport,
     league: row.league,
-    homeTeamName: row.home_team_name,
-    awayTeamName: row.away_team_name,
+    homeTeamName: canonicalizeSportsTeamName(row.home_team_name),
+    awayTeamName: canonicalizeSportsTeamName(row.away_team_name),
     homeTeamId: row.home_team_id ?? undefined,
     awayTeamId: row.away_team_id ?? undefined,
     kickoffUtc: row.kickoff_utc ?? undefined,
@@ -314,4 +321,28 @@ function mapSportsFixtureFromDb(row: DbSportsFixture): SportsFixture {
     raw: row.raw,
     lastSyncedAt: row.last_synced_at ?? undefined,
   };
+}
+
+function dedupeSportsFixtures(fixtures: SportsFixture[]) {
+  const fixturesByKey = new Map<string, SportsFixture>();
+
+  for (const fixture of fixtures) {
+    const key = [
+      fixture.tournamentId,
+      fixture.kickoffUtc ?? "",
+      fixture.homeTeamName.toLowerCase(),
+      fixture.awayTeamName.toLowerCase(),
+    ].join("|");
+
+    if (!fixturesByKey.has(key)) {
+      fixturesByKey.set(key, fixture);
+    }
+  }
+
+  return Array.from(fixturesByKey.values()).sort((a, b) => {
+    const aTime = a.kickoffUtc ? new Date(a.kickoffUtc).getTime() : 0;
+    const bTime = b.kickoffUtc ? new Date(b.kickoffUtc).getTime() : 0;
+
+    return aTime - bTime;
+  });
 }

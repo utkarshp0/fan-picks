@@ -122,6 +122,37 @@ describe("Big Balls Data sports sync", () => {
     );
   });
 
+  it("canonicalizes and dedupes fixture aliases from provider data", () => {
+    const snapshot = normalizeBigBallsMatches(
+      {
+        tournamentId: "fifa-world-cup-2026",
+        league: "wc2026",
+      },
+      [
+        {
+          match_id: "match-czechia",
+          home_team: { id: "kor", name: "South Korea" },
+          away_team: { id: "cze", name: "Czechia" },
+          scheduled_at: "2026-06-12T02:00:00Z",
+          status: "upcoming",
+        },
+        {
+          match_id: "match-czech-republic",
+          home_team: { id: "kor", name: "South Korea" },
+          away_team: { id: "cze", name: "Czech Republic" },
+          scheduled_at: "2026-06-12T02:00:00Z",
+          status: "upcoming",
+        },
+      ],
+      "2026-06-03T10:00:00.000Z",
+    );
+
+    assert.equal(snapshot.fixtures.length, 1);
+    assert.equal(snapshot.fixtures[0].homeTeamName, "South Korea");
+    assert.equal(snapshot.fixtures[0].awayTeamName, "Czech Republic");
+    assert.equal(snapshot.tournament.matchCount, 1);
+  });
+
   it("normalizes WorldCup26 qualified teams from the dedicated teams endpoint", () => {
     const teams = normalizeWorldCup26Teams("fifa-world-cup-2026", [
       {

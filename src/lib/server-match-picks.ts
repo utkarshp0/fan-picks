@@ -14,6 +14,7 @@ import {
   validateMatchPickAnswer,
 } from "@/lib/match-pick-rules";
 import { getAppNow, getAppNowIso } from "@/lib/app-clock";
+import { canonicalizeSportsTeamName } from "@/lib/sports-team-utils";
 import { createSupabaseServiceClient } from "@/lib/supabase-server";
 import type {
   MatchPickAnswer,
@@ -147,14 +148,38 @@ export async function getUpcomingMatchPickFixtures(
     fixtures = (fallback.data ?? []) as DbFixture[];
   }
 
-  return fixtures.map((fixture) => {
-    const mapped = mapFixtureFromDb(fixture);
-
+  return dedupeMatchPickFixtures(fixtures.map(mapFixtureFromDb)).map((mapped) => {
     return {
       fixture: mapped,
       kickoffLabel: formatIst(mapped.kickoffUtc),
       lockLabel: mapped.kickoffUtc ? formatIst(getMatchPickLockAt(mapped.kickoffUtc)) : "TBD",
     };
+  });
+}
+
+export function dedupeMatchPickFixtures(fixtures: SportsFixture[]) {
+  const fixturesByMatchKey = new Map<string, SportsFixture>();
+
+  for (const fixture of fixtures) {
+    const matchKey = getMatchFixtureKey(fixture);
+
+    if (!fixturesByMatchKey.has(matchKey)) {
+      fixturesByMatchKey.set(matchKey, fixture);
+      continue;
+    }
+
+    const current = fixturesByMatchKey.get(matchKey);
+
+    if (current && isBetterFixtureCandidate(fixture, current)) {
+      fixturesByMatchKey.set(matchKey, fixture);
+    }
+  }
+
+  return Array.from(fixturesByMatchKey.values()).sort((a, b) => {
+    const aTime = a.kickoffUtc ? new Date(a.kickoffUtc).getTime() : 0;
+    const bTime = b.kickoffUtc ? new Date(b.kickoffUtc).getTime() : 0;
+
+    return aTime - bTime;
   });
 }
 
@@ -730,8 +755,8 @@ function mapFixtureFromDb(row: DbFixture): SportsFixture {
     providerMatchId: row.provider_match_id,
     sport: row.sport,
     league: row.league,
-    homeTeamName: row.home_team_name,
-    awayTeamName: row.away_team_name,
+    homeTeamName: canonicalizeSportsTeamName(row.home_team_name),
+    awayTeamName: canonicalizeSportsTeamName(row.away_team_name),
     homeTeamId: row.home_team_id ?? undefined,
     awayTeamId: row.away_team_id ?? undefined,
     kickoffUtc: row.kickoff_utc ?? undefined,
@@ -741,6 +766,46 @@ function mapFixtureFromDb(row: DbFixture): SportsFixture {
     raw: row.raw,
     lastSyncedAt: row.last_synced_at ?? undefined,
   };
+}
+
+function getMatchFixtureKey(fixture: SportsFixture) {
+  return [
+    fixture.tournamentId,
+    fixture.kickoffUtc ?? "",
+    canonicalizeSportsTeamName(fixture.homeTeamName).toLowerCase(),
+    canonicalizeSportsTeamName(fixture.awayTeamName).toLowerCase(),
+  ].join("|");
+}
+
+function isBetterFixtureCandidate(
+  candidate: SportsFixture,
+  current: SportsFixture,
+) {
+  return getFixtureQualityScore(candidate) > getFixtureQualityScore(current);
+}
+
+function getFixtureQualityScore(fixture: SportsFixture) {
+  const raw = fixture.raw as { source?: unknown } | undefined;
+  const source = String(raw?.source ?? "").toLowerCase();
+  let score = 0;
+
+  if (source.includes("big-balls")) {
+    score += 3;
+  }
+
+  if (fixture.homeTeamId) {
+    score += 1;
+  }
+
+  if (fixture.awayTeamId) {
+    score += 1;
+  }
+
+  if (fixture.lastSyncedAt) {
+    score += 1;
+  }
+
+  return score;
 }
 
 function mapParticipantFromDb(row: DbParticipant): MatchPickParticipant {
