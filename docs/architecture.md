@@ -373,6 +373,8 @@ implemented in `src/app/api/share-image/route.tsx`, to generate a branded
 It also keeps invite image URLs code-specific and versioned so platforms with
 aggressive unfurl caches fetch a fresh preview. Keep explicit image width,
 height, type, and alt metadata on invite pages.
+Invite URLs produced by app share buttons include `preview=v2` for the same
+reason: WhatsApp can cache the entire page URL, not just the image URL.
 
 ## Brand Assets
 

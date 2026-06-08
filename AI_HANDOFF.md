@@ -406,6 +406,8 @@ Product rules:
 - Invite preview images are code-specific and versioned through
   `src/lib/share-metadata.ts`. Keep explicit width/height/type/alt metadata and
   a banner-style generated image so WhatsApp does not fall back to plain text.
+- App-generated invite links include `preview=v2` because WhatsApp can cache
+  the page URL itself.
 - Match Picks and Live Scores use a logo-free generated stadium artwork from
   `public/brand/world-cup-stadium-night.png` plus stylized team spotlight cards
   for visual polish. Do not introduce real player/captain photos unless the app

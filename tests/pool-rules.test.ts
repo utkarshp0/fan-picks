@@ -368,7 +368,7 @@ describe("pool invite links", () => {
   test("builds a shareable pool invite path", () => {
     assert.equal(
       getPoolInvitePath("FP-ABC 123"),
-      "/championships/join?code=FP-ABC%20123",
+      "/championships/join?code=FP-ABC+123&preview=v2",
     );
   });
 

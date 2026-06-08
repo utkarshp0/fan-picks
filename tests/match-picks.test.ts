@@ -211,7 +211,7 @@ describe("Match Picks rules", () => {
   it("builds a shareable Match Pick invite path", () => {
     assert.equal(
       getMatchPickInvitePath("MP-ABC 123"),
-      "/match-picks/join?code=MP-ABC%20123",
+      "/match-picks/join?code=MP-ABC+123&preview=v2",
     );
   });
 

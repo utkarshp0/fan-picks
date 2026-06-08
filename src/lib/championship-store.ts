@@ -992,7 +992,12 @@ export function normalizeInviteCode(value: string) {
 }
 
 export function getPoolInvitePath(inviteCode: string) {
-  return `/championships/join?code=${encodeURIComponent(inviteCode)}`;
+  const params = new URLSearchParams({
+    code: inviteCode,
+    preview: "v2",
+  });
+
+  return `/championships/join?${params.toString()}`;
 }
 
 export function createPoolInviteMessage({

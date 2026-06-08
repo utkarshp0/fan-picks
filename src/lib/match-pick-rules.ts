@@ -69,7 +69,12 @@ export function canLeaveMatchPickRoom(
 }
 
 export function getMatchPickInvitePath(inviteCode: string) {
-  return `/match-picks/join?code=${encodeURIComponent(inviteCode)}`;
+  const params = new URLSearchParams({
+    code: inviteCode,
+    preview: "v2",
+  });
+
+  return `/match-picks/join?${params.toString()}`;
 }
 
 export function createMatchPickInviteMessage({
