@@ -206,14 +206,16 @@ export function PredictionBoard({ championship }: PredictionBoardProps) {
   }
 
   return (
-    <div className="grid gap-4">
-      <section className="rounded-lg border border-border bg-surface-raised p-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <SectionHeading
-            description="Save drafts until the lock date. Locked picks can be reopened before the deadline if you made a mistake."
-            title="My picks"
-          />
-          <Badge variant={isLocked ? "accent" : "warning"}>
+    <div className="grid min-w-0 max-w-full gap-4 overflow-hidden">
+      <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-border bg-surface-raised p-4">
+        <div className="grid min-w-0 gap-4 sm:flex sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <SectionHeading
+              description="Save drafts until the lock date. Locked picks can be reopened before the deadline if you made a mistake."
+              title="My picks"
+            />
+          </div>
+          <Badge className="w-fit max-w-full" variant={isLocked ? "accent" : "warning"}>
             {isLocked ? "Locked" : "Editable"}
           </Badge>
         </div>
@@ -223,24 +225,24 @@ export function PredictionBoard({ championship }: PredictionBoardProps) {
             Join this pool before submitting picks.
           </div>
         ) : (
-          <form className="mt-5 grid gap-4" onSubmit={handleSave}>
-            <fieldset className="grid gap-3" disabled={isLocked}>
+          <form className="mt-5 grid min-w-0 max-w-full gap-4" onSubmit={handleSave}>
+            <fieldset className="grid min-w-0 max-w-full gap-3" disabled={isLocked}>
               {championship.bets.map((bet) => (
                 <div
-                  className="rounded-lg border border-border bg-background p-3"
+                  className="min-w-0 max-w-full overflow-hidden rounded-lg border border-border bg-background p-3"
                   key={bet.id}
                 >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
+                  <div className="grid min-w-0 gap-2 sm:flex sm:items-center sm:justify-between">
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium">{bet.name}</p>
+                        <p className="min-w-0 break-words font-medium">{bet.name}</p>
                         <Badge variant={bet.source === "custom" ? "warning" : "muted"}>
                           {bet.source}
                         </Badge>
                       </div>
                       <p className="mt-1 text-sm text-muted">{bet.prompt}</p>
                     </div>
-                    <Badge variant="muted">
+                    <Badge className="w-fit max-w-full" variant="muted">
                       {bet.selectionCount} pick
                       {bet.selectionCount === 1 ? "" : "s"} required
                     </Badge>
@@ -427,13 +429,15 @@ function PredictionVisibility({ championship }: PredictionBoardProps) {
   );
 
   return (
-    <section className="rounded-lg border border-border bg-surface-raised p-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <SectionHeading
-          description="Before lock, everyone sees status and timestamps. Picks stay hidden except your own."
-          title="Pool picks"
-        />
-        <Badge variant={revealPredictions ? "accent" : "warning"}>
+    <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-border bg-surface-raised p-4">
+      <div className="grid min-w-0 gap-4 sm:flex sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <SectionHeading
+            description="Before lock, everyone sees status and timestamps. Picks stay hidden except your own."
+            title="Pool picks"
+          />
+        </div>
+        <Badge className="w-fit max-w-full" variant={revealPredictions ? "accent" : "warning"}>
           {revealPredictions ? "Revealed" : "Hidden"}
         </Badge>
       </div>
@@ -572,28 +576,28 @@ function TeamChoicePicker({
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="grid min-w-0 max-w-full gap-3 overflow-hidden">
       {selectedValues.map((value) => (
         <input key={value} name={name} type="hidden" value={value} />
       ))}
 
-      <div className="rounded-lg border border-border bg-surface p-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
+      <div className="min-w-0 max-w-full overflow-hidden rounded-lg border border-border bg-surface p-3">
+        <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start">
+          <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-accent">
               Selected {selectedValues.length}/{maxSelections}
             </p>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex min-w-0 flex-wrap gap-2">
               {selectedValues.length > 0 ? (
                 selectedValues.map((value) => (
                   <button
-                    className="inline-flex min-h-9 items-center gap-2 rounded-full border border-accent/50 bg-accent/10 px-3 text-sm font-medium text-foreground"
+                    className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-full border border-accent/50 bg-accent/10 px-3 text-sm font-medium text-foreground"
                     key={value}
                     onClick={() => toggleSelection(value)}
                     type="button"
                   >
                     <TeamFlag name={value} size="sm" />
-                    {value}
+                    <span className="min-w-0 truncate">{value}</span>
                     <span className="text-muted" aria-hidden>
                       x
                     </span>
@@ -608,7 +612,7 @@ function TeamChoicePicker({
           </div>
 
           <input
-            className="min-h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-accent lg:max-w-xs"
+            className="min-h-11 min-w-0 w-full max-w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-accent"
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search teams"
             type="search"
@@ -617,7 +621,7 @@ function TeamChoicePicker({
         </div>
 
         {availableRegions.length > 1 ? (
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          <div className="mt-3 flex min-w-0 max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {(["All", ...availableRegions] as Array<TeamRegion | "All">).map(
               (region) => (
                 <button
@@ -639,7 +643,7 @@ function TeamChoicePicker({
         ) : null}
       </div>
 
-      <div className="grid max-h-[34rem] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid min-w-0 max-w-full grid-cols-1 gap-2 overflow-x-hidden overflow-y-visible pr-0 sm:max-h-[34rem] sm:overflow-y-auto sm:pr-1 md:grid-cols-2 xl:grid-cols-3">
         {filteredOptions.map((option) => {
           const isSelected = selectedSet.has(option);
           const isDisabled =
@@ -649,7 +653,7 @@ function TeamChoicePicker({
             <button
               aria-pressed={isSelected}
               className={cn(
-                "flex min-h-14 items-center gap-3 rounded-lg border px-3 text-left text-sm transition",
+                "flex min-h-14 min-w-0 max-w-full items-center gap-3 rounded-lg border px-3 text-left text-sm transition",
                 isSelected
                   ? "border-accent bg-accent/12 text-foreground shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent)_40%,transparent)]"
                   : "border-border bg-surface text-muted hover:border-accent/70 hover:text-foreground",
