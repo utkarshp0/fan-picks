@@ -412,6 +412,9 @@ Product rules:
   `public/brand/world-cup-stadium-night.png` plus stylized team spotlight cards
   for visual polish. Do not introduce real player/captain photos unless the app
   has a licensed, reliable source for those images.
+- Pool prediction team choices use `src/lib/team-display.ts` for flag/region
+  presentation only. Saved picks remain plain team names, and validation still
+  comes from the existing selection-count rules.
 - Results are scored from synced `sports_fixtures`, not user input.
 - Winner copy should be light and funny, for example:
   `Nobody got this one. Football chose chaos.`

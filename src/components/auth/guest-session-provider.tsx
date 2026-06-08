@@ -18,8 +18,8 @@ import { updateAnonymousProfile } from "@/lib/guest-profile";
 import { syncProfileToSupabase } from "@/lib/supabase-championships";
 import type { AnonymousProfile, ProfileDraft } from "@/types/profile";
 
-const storageKey = "fan-picks:user";
-const profileChangeEvent = "fan-picks:profile-change";
+export const guestProfileStorageKey = "fan-picks:user";
+export const guestProfileChangeEvent = "fan-picks:profile-change";
 let cachedProfile: AnonymousProfile | null = null;
 
 type SignInInput = {
@@ -120,12 +120,12 @@ function subscribeToProfile(onStoreChange: () => void) {
     onStoreChange();
   };
 
-  window.addEventListener(profileChangeEvent, onStoreChange);
+  window.addEventListener(guestProfileChangeEvent, onStoreChange);
   window.addEventListener("storage", handleStorageChange);
   void hydrateProfileFromSupabaseAuth();
 
   return () => {
-    window.removeEventListener(profileChangeEvent, onStoreChange);
+    window.removeEventListener(guestProfileChangeEvent, onStoreChange);
     window.removeEventListener("storage", handleStorageChange);
   };
 }
@@ -146,7 +146,7 @@ function getServerProfileSnapshot() {
 
 function readStoredProfile(): AnonymousProfile | null {
   try {
-    const rawProfile = localStorage.getItem(storageKey);
+    const rawProfile = localStorage.getItem(guestProfileStorageKey);
 
     if (!rawProfile) {
       return null;
@@ -161,14 +161,14 @@ function readStoredProfile(): AnonymousProfile | null {
 
 function writeProfile(profile: AnonymousProfile) {
   cachedProfile = profile;
-  localStorage.setItem(storageKey, JSON.stringify(profile));
-  window.dispatchEvent(new Event(profileChangeEvent));
+  localStorage.setItem(guestProfileStorageKey, JSON.stringify(profile));
+  window.dispatchEvent(new Event(guestProfileChangeEvent));
 }
 
 function clearProfile() {
   cachedProfile = null;
-  localStorage.removeItem(storageKey);
-  window.dispatchEvent(new Event(profileChangeEvent));
+  localStorage.removeItem(guestProfileStorageKey);
+  window.dispatchEvent(new Event(guestProfileChangeEvent));
 }
 
 async function hydrateProfileFromSupabaseAuth() {
@@ -176,5 +176,10 @@ async function hydrateProfileFromSupabaseAuth() {
 
   if (profile) {
     writeProfile(profile);
+    return;
+  }
+
+  if (readStoredProfile()) {
+    clearProfile();
   }
 }

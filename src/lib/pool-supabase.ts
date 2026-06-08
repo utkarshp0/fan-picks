@@ -1,6 +1,10 @@
 "use client";
 
 import { getChampionshipTemplate } from "@/data/templates";
+import {
+  guestProfileChangeEvent,
+  guestProfileStorageKey,
+} from "@/components/auth/guest-session-provider";
 import { createSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
 import type {
   AuditEvent,
@@ -91,6 +95,24 @@ export function canUsePoolSupabase() {
   return isSupabaseConfigured();
 }
 
+async function getRequiredAccessToken() {
+  const supabase = createSupabaseBrowserClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  return session?.access_token ?? "";
+}
+
+function handleUnauthorizedResponse(status: number) {
+  if (status !== 401 || typeof window === "undefined") {
+    return;
+  }
+
+  localStorage.removeItem(guestProfileStorageKey);
+  window.dispatchEvent(new Event(guestProfileChangeEvent));
+}
+
 export async function syncPoolProfile(profile: AnonymousProfile) {
   if (!canUsePoolSupabase()) {
     return false;
@@ -145,15 +167,18 @@ export async function createSupabasePool(
     return { ok: false, message: "Supabase is not configured." };
   }
 
-  const supabase = createSupabaseBrowserClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const accessToken = await getRequiredAccessToken();
+
+  if (!accessToken) {
+    handleUnauthorizedResponse(401);
+    return { ok: false, message: "Login required." };
+  }
+
   const response = await fetch("/api/pools/create", {
     body: JSON.stringify({ championship, creator }),
     cache: "no-store",
     headers: {
-      Authorization: `Bearer ${session?.access_token ?? ""}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     method: "POST",
@@ -163,6 +188,7 @@ export async function createSupabasePool(
     | { ok: false; message: string; status?: number };
 
   if (!response.ok || !result.ok) {
+    handleUnauthorizedResponse(response.status);
     console.warn("Supabase pool create failed", result.message);
     return { ok: false, message: result.message };
   }
@@ -281,20 +307,24 @@ export async function lockSupabasePrediction(championshipId: string) {
     return false;
   }
 
-  const supabase = createSupabaseBrowserClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const accessToken = await getRequiredAccessToken();
+
+  if (!accessToken) {
+    handleUnauthorizedResponse(401);
+    return false;
+  }
+
   const response = await fetch("/api/predictions/lock", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${session?.access_token ?? ""}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ championshipId }),
   });
 
   if (!response.ok) {
+    handleUnauthorizedResponse(response.status);
     const result = (await response.json().catch(() => null)) as
       | { message?: string }
       | null;
@@ -310,20 +340,24 @@ export async function unlockSupabasePrediction(championshipId: string) {
     return false;
   }
 
-  const supabase = createSupabaseBrowserClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const accessToken = await getRequiredAccessToken();
+
+  if (!accessToken) {
+    handleUnauthorizedResponse(401);
+    return false;
+  }
+
   const response = await fetch("/api/predictions/unlock", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${session?.access_token ?? ""}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ championshipId }),
   });
 
   if (!response.ok) {
+    handleUnauthorizedResponse(response.status);
     const result = (await response.json().catch(() => null)) as
       | { message?: string }
       | null;
@@ -346,20 +380,24 @@ export async function syncSupabasePoolBets(
     return false;
   }
 
-  const supabase = createSupabaseBrowserClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const accessToken = await getRequiredAccessToken();
+
+  if (!accessToken) {
+    handleUnauthorizedResponse(401);
+    return false;
+  }
+
   const response = await fetch("/api/pool-bets/sync", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${session?.access_token ?? ""}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ bets, championshipId, events }),
   });
 
   if (!response.ok) {
+    handleUnauthorizedResponse(response.status);
     const result = (await response.json().catch(() => null)) as
       | { message?: string }
       | null;

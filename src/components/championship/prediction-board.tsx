@@ -22,6 +22,14 @@ import {
 } from "@/lib/championship-store";
 import { fetchSportsTournaments } from "@/lib/sports-data-client";
 import { filterRealSportsTeamNames } from "@/lib/sports-team-utils";
+import {
+  getTeamDisplayInfo,
+  getTeamInitials,
+  teamMatchesSearch,
+  teamRegions,
+  type TeamRegion,
+} from "@/lib/team-display";
+import { cn } from "@/lib/utils";
 import type {
   Championship,
   PredictionCategory,
@@ -233,7 +241,8 @@ export function PredictionBoard({ championship }: PredictionBoardProps) {
                       <p className="mt-1 text-sm text-muted">{bet.prompt}</p>
                     </div>
                     <Badge variant="muted">
-                      {latestPicks[bet.id]?.length ?? 0}/{bet.selectionCount}
+                      {bet.selectionCount} pick
+                      {bet.selectionCount === 1 ? "" : "s"} required
                     </Badge>
                   </div>
                   <div className="mt-3">
@@ -330,17 +339,33 @@ function BetInput({
 }) {
   if (bet.type === "multi-team") {
     return (
-      <CheckboxGrid
+      <TeamChoicePicker
         defaultValues={defaultValues}
         key={`${bet.id}:${defaultValues.join("|")}`}
         maxSelections={bet.selectionCount}
         name={bet.id}
         options={getBetOptions(bet, teamOptions)}
+        selectionMode="multiple"
       />
     );
   }
 
   if (bet.type === "choice" || bet.type === "single-team") {
+    const options = getBetOptions(bet, teamOptions);
+
+    if (bet.type === "single-team" || options.length > 8) {
+      return (
+        <TeamChoicePicker
+          defaultValues={defaultValues}
+          key={`${bet.id}:${defaultValues.join("|")}`}
+          maxSelections={1}
+          name={bet.id}
+          options={options}
+          selectionMode="single"
+        />
+      );
+    }
+
     return (
       <select
         className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-accent"
@@ -490,53 +515,206 @@ type CheckboxGridProps = {
   maxSelections: number;
   name: string;
   options: string[];
+  selectionMode: "multiple" | "single";
 };
 
-function CheckboxGrid({
+function TeamChoicePicker({
   defaultValues,
   maxSelections,
   name,
   options,
+  selectionMode,
 }: CheckboxGridProps) {
   const [selectedValues, setSelectedValues] = useState(defaultValues);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeRegion, setActiveRegion] = useState<TeamRegion | "All">("All");
+  const selectedSet = useMemo(
+    () => new Set(selectedValues),
+    [selectedValues],
+  );
+  const availableRegions = useMemo(
+    () =>
+      teamRegions.filter((region) =>
+        options.some((option) => getTeamDisplayInfo(option).region === region),
+      ),
+    [options],
+  );
+  const filteredOptions = useMemo(
+    () =>
+      options.filter((option) => {
+        const region = getTeamDisplayInfo(option).region;
+        const matchesRegion = activeRegion === "All" || region === activeRegion;
+
+        return matchesRegion && teamMatchesSearch(option, searchQuery);
+      }),
+    [activeRegion, options, searchQuery],
+  );
+  const selectionLimitReached = selectedValues.length >= maxSelections;
+
+  function toggleSelection(option: string) {
+    setSelectedValues((currentValues) => {
+      const isSelected = currentValues.includes(option);
+
+      if (isSelected) {
+        return currentValues.filter((value) => value !== option);
+      }
+
+      if (selectionMode === "single") {
+        return [option];
+      }
+
+      if (currentValues.length >= maxSelections) {
+        return currentValues;
+      }
+
+      return [...currentValues, option];
+    });
+  }
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      {options.map((option) => (
-        <label
-          className="flex min-h-10 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-muted"
-          key={option}
-        >
-          <input
-            className="h-4 w-4 accent-[var(--accent)]"
-            checked={selectedValues.includes(option)}
-            disabled={
-              !selectedValues.includes(option) &&
-              selectedValues.length >= maxSelections
-            }
-            name={name}
-            onChange={(event) => {
-              const isChecked = event.currentTarget.checked;
-
-              setSelectedValues((currentValues) => {
-                if (!isChecked) {
-                  return currentValues.filter((value) => value !== option);
-                }
-
-                if (currentValues.length >= maxSelections) {
-                  return currentValues;
-                }
-
-                return [...currentValues, option];
-              });
-            }}
-            type="checkbox"
-            value={option}
-          />
-          {option}
-        </label>
+    <div className="grid gap-3">
+      {selectedValues.map((value) => (
+        <input key={value} name={name} type="hidden" value={value} />
       ))}
+
+      <div className="rounded-lg border border-border bg-surface p-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-accent">
+              Selected {selectedValues.length}/{maxSelections}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {selectedValues.length > 0 ? (
+                selectedValues.map((value) => (
+                  <button
+                    className="inline-flex min-h-9 items-center gap-2 rounded-full border border-accent/50 bg-accent/10 px-3 text-sm font-medium text-foreground"
+                    key={value}
+                    onClick={() => toggleSelection(value)}
+                    type="button"
+                  >
+                    <TeamFlag name={value} size="sm" />
+                    {value}
+                    <span className="text-muted" aria-hidden>
+                      x
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <span className="rounded-full border border-dashed border-border px-3 py-2 text-sm text-muted">
+                  Pick {maxSelections === 1 ? "one team" : `${maxSelections} teams`}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <input
+            className="min-h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-accent lg:max-w-xs"
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search teams"
+            type="search"
+            value={searchQuery}
+          />
+        </div>
+
+        {availableRegions.length > 1 ? (
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            {(["All", ...availableRegions] as Array<TeamRegion | "All">).map(
+              (region) => (
+                <button
+                  className={cn(
+                    "min-h-9 shrink-0 rounded-full border px-3 text-sm transition",
+                    activeRegion === region
+                      ? "border-accent bg-accent text-accent-foreground"
+                      : "border-border bg-background text-muted hover:border-accent/70 hover:text-foreground",
+                  )}
+                  key={region}
+                  onClick={() => setActiveRegion(region)}
+                  type="button"
+                >
+                  {region}
+                </button>
+              ),
+            )}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="grid max-h-[34rem] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+        {filteredOptions.map((option) => {
+          const isSelected = selectedSet.has(option);
+          const isDisabled =
+            selectionMode === "multiple" && !isSelected && selectionLimitReached;
+
+          return (
+            <button
+              aria-pressed={isSelected}
+              className={cn(
+                "flex min-h-14 items-center gap-3 rounded-lg border px-3 text-left text-sm transition",
+                isSelected
+                  ? "border-accent bg-accent/12 text-foreground shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent)_40%,transparent)]"
+                  : "border-border bg-surface text-muted hover:border-accent/70 hover:text-foreground",
+                isDisabled && "cursor-not-allowed opacity-45 hover:border-border hover:text-muted",
+              )}
+              disabled={isDisabled}
+              key={option}
+              onClick={() => toggleSelection(option)}
+              type="button"
+            >
+              <TeamFlag name={option} />
+              <span className="min-w-0 flex-1 truncate font-medium">{option}</span>
+              <span
+                className={cn(
+                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs",
+                  isSelected
+                    ? "border-accent bg-accent text-accent-foreground"
+                    : "border-border text-transparent",
+                )}
+                aria-hidden
+              >
+                ✓
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {filteredOptions.length === 0 ? (
+        <div className="rounded-md border border-dashed border-border bg-background p-4 text-sm text-muted">
+          No teams match that search.
+        </div>
+      ) : null}
+
+      {selectionMode === "multiple" && selectionLimitReached ? (
+        <p className="text-xs text-muted">
+          Remove one selected team before choosing another.
+        </p>
+      ) : null}
     </div>
+  );
+}
+
+function TeamFlag({ name, size = "md" }: { name: string; size?: "sm" | "md" }) {
+  const { flagCode } = getTeamDisplayInfo(name);
+
+  return (
+    <span
+      aria-label={`${name} flag`}
+      className={cn(
+        "grid shrink-0 place-items-center overflow-hidden rounded-full border border-white/20 bg-surface-soft text-[0.62rem] font-semibold text-foreground shadow-sm",
+        size === "sm" ? "h-6 w-6" : "h-8 w-8",
+      )}
+      style={
+        flagCode
+          ? {
+              backgroundImage: `url(https://flagcdn.com/w80/${flagCode}.png)`,
+              backgroundPosition: "center",
+              backgroundSize: "cover",
+            }
+          : undefined
+      }
+    >
+      {flagCode ? null : getTeamInitials(name)}
+    </span>
   );
 }
 

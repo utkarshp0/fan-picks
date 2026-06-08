@@ -395,6 +395,15 @@ licensed and reliable data source is added.
 Trophy icons should still be used when the UI means pool, tournament, or
 competition. They should not be used as the Fan Picks product logo.
 
+## Team Choice Picker
+
+Prediction submissions store plain team names as canonical values. The flag,
+region, search, and initials behavior used by team pickers is presentation
+metadata in `src/lib/team-display.ts`; do not write flag URLs or country codes
+into saved picks. Large team-choice bets use the searchable card picker in
+`src/components/championship/prediction-board.tsx`, while the existing
+selection-count validation remains the authority for save and lock behavior.
+
 ## UI Interaction Pattern
 
 Async actions should use the shared `Button` loading API:
