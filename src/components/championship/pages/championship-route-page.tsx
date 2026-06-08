@@ -102,12 +102,12 @@ export function ChampionshipRoutePage({
 
   return (
     <AppShell>
-      <div className="grid gap-5">
+      <div className="grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-5 overflow-hidden">
         <ChampionshipHeader championship={championship} />
 
         <nav
           aria-label="Championship pages"
-          className="flex gap-2 overflow-x-auto border-b border-border pb-2"
+          className="-mx-4 flex max-w-[100vw] gap-2 overflow-x-auto border-b border-border px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:max-w-full sm:px-0 [&::-webkit-scrollbar]:hidden"
         >
           {pageTabs.map((tab) => (
             <PoolTabLink
@@ -203,28 +203,28 @@ function ChampionshipHeader({ championship }: { championship: Championship }) {
   }
 
   return (
-    <section className="rounded-lg border border-border bg-surface p-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
+    <section className="min-w-0 overflow-hidden rounded-lg border border-border bg-surface p-4">
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="accent">{championship.status}</Badge>
             <Badge variant="muted">{championship.inviteCode}</Badge>
           </div>
-          <h2 className="mt-4 text-2xl font-semibold leading-8">
+          <h2 className="mt-4 break-words text-2xl font-semibold leading-8">
             {championship.name}
           </h2>
           <p className="mt-2 text-sm text-muted">
             {tournament.name} · {championship.bets.length} bet(s)
           </p>
         </div>
-        <div className="grid gap-2 rounded-lg border border-border bg-surface-raised p-3 text-sm sm:min-w-64">
+        <div className="grid min-w-0 gap-2 rounded-lg border border-border bg-surface-raised p-3 text-sm sm:min-w-64">
           <div className="flex items-center justify-between gap-3">
             <span className="text-muted">Start</span>
-            <span>{formatDate(championship.startDate)}</span>
+            <span className="text-right">{formatDate(championship.startDate)}</span>
           </div>
           <div className="flex items-center justify-between gap-3">
             <span className="text-muted">Lock</span>
-            <span>{formatDate(championship.lockDate)}</span>
+            <span className="text-right">{formatDate(championship.lockDate)}</span>
           </div>
           <Button
             onClick={() => void copyInvite(championship.inviteCode, "Invite code copied.")}
@@ -239,9 +239,9 @@ function ChampionshipHeader({ championship }: { championship: Championship }) {
           </Button>
         </div>
       </div>
-      <div className="mt-4 grid gap-3 rounded-lg border border-border bg-background p-3">
+      <div className="mt-4 grid min-w-0 gap-3 rounded-lg border border-border bg-background p-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground">Invite your group</p>
             <p className="mt-1 text-sm text-muted">
               Share the link or message. The link opens Join Pool with the code filled in.
@@ -253,13 +253,16 @@ function ChampionshipHeader({ championship }: { championship: Championship }) {
             </span>
           ) : null}
         </div>
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="min-w-0 rounded-md border border-border bg-surface px-3 py-2">
             <p className="text-xs text-muted">Invite link</p>
-            <p className="mt-1 break-all text-sm font-semibold text-foreground">{inviteUrl}</p>
+            <p className="mt-1 max-w-full overflow-hidden break-all text-sm font-semibold leading-6 text-foreground">
+              {inviteUrl}
+            </p>
           </div>
-          <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+          <div className="grid min-w-0 gap-2 sm:grid-cols-3 lg:w-40 lg:grid-cols-1">
             <Button
+              className="w-full"
               onClick={() => void copyInvite(inviteUrl, "Invite link copied.")}
               variant="secondary"
             >
@@ -267,21 +270,22 @@ function ChampionshipHeader({ championship }: { championship: Championship }) {
               Copy link
             </Button>
             <Button
+              className="w-full"
               onClick={() => void copyInvite(inviteMessage, "Invite message copied.")}
               variant="secondary"
             >
               <Clipboard aria-hidden className="h-4 w-4" />
               Copy message
             </Button>
-            <Button onClick={() => void shareInvite()}>
+            <Button className="w-full" onClick={() => void shareInvite()}>
               <Share2 aria-hidden className="h-4 w-4" />
               Share
             </Button>
           </div>
         </div>
-        <div className="rounded-md border border-border bg-surface-raised p-3 text-sm leading-6 text-muted">
+        <div className="min-w-0 rounded-md border border-border bg-surface-raised p-3 text-sm leading-6 text-muted">
           <p className="font-semibold text-foreground">Message preview</p>
-          <p className="mt-2 whitespace-pre-line">{inviteMessage}</p>
+          <p className="mt-2 whitespace-pre-line break-words">{inviteMessage}</p>
         </div>
       </div>
       <div className="mt-4 flex items-center gap-2 text-sm text-muted">

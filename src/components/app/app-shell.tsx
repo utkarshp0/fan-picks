@@ -117,9 +117,9 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <AppNavigationLoader isVisible={Boolean(visiblePendingHref)} />
-      <div className="mx-auto flex min-h-screen w-full max-w-[1440px]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1440px] overflow-x-hidden">
         <aside className="hidden w-64 shrink-0 border-r border-border bg-background px-5 py-5 lg:flex lg:flex-col">
           <Link className="flex min-h-11 items-center gap-3" href="/championships">
             <FanPicksMark className="h-10 w-10 shrink-0" />
@@ -174,7 +174,7 @@ export function AppShell({ children }: AppShellProps) {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 border-b border-border bg-background/92 px-4 py-3 backdrop-blur sm:px-6 lg:hidden">
+          <header className="sticky top-0 z-20 max-w-full overflow-hidden border-b border-border bg-background/92 px-4 py-3 backdrop-blur sm:px-6 lg:hidden">
             <div className="flex min-h-12 items-center justify-between gap-3">
               <Link className="flex min-w-0 items-center gap-3" href="/championships">
                 <FanPicksMark className="h-10 w-10 shrink-0" />
@@ -196,7 +196,7 @@ export function AppShell({ children }: AppShellProps) {
                 </button>
               </div>
             </div>
-            <nav className="mt-3 flex gap-2 overflow-x-auto pb-1" aria-label="Mobile navigation">
+            <nav className="-mx-4 mt-3 flex max-w-[100vw] gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Mobile navigation">
               {navItems.map((item) => (
                 <Link
                   className={cn(
@@ -223,7 +223,7 @@ export function AppShell({ children }: AppShellProps) {
             </nav>
           </header>
 
-          <main className="flex-1 px-4 pb-8 pt-5 sm:px-6 lg:px-8">
+          <main className="min-w-0 flex-1 overflow-x-hidden px-4 pb-8 pt-5 sm:px-6 lg:px-8">
             {children}
           </main>
         </div>
