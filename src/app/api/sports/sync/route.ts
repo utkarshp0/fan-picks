@@ -41,21 +41,7 @@ export async function POST(request: Request) {
     for (const config of getSportsLeagueSyncConfig()) {
       const matches = await fetchBigBallsLeagueMatches(config);
       const matchSnapshot = normalizeBigBallsMatches(config, matches, syncedAt);
-      const qualifiedTeams = await fetchWorldCup26QualifiedTeams(config).catch(
-        async (teamError) => {
-          await recordSportsSyncFailure({
-            message:
-              teamError instanceof Error
-                ? teamError.message
-                : "WorldCup26 teams sync failed.",
-            syncedAt,
-            tournamentId: config.tournamentId,
-            source: "worldcup26-teams",
-          });
-
-          return null;
-        },
-      );
+      const qualifiedTeams = await fetchWorldCup26QualifiedTeams(config);
       const snapshot = withWorldCup26QualifiedTeams(
         matchSnapshot,
         qualifiedTeams,

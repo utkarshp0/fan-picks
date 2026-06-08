@@ -415,6 +415,11 @@ Product rules:
 - Pool prediction team choices use `src/lib/team-display.ts` for flag/region
   presentation only. Saved picks remain plain team names, and validation still
   comes from the existing selection-count rules.
+- FIFA World Cup 2026 team choices must come from `worldcup26.ir/get/teams`
+  and must be exactly 48 teams. Big Balls Data remains valid for fixtures/live
+  scores, but fixture-derived team aliases must not populate pool team choices.
+  Sports sync replaces existing `sports_teams` rows for the tournament before
+  inserting the authoritative list.
 - Results are scored from synced `sports_fixtures`, not user input.
 - Winner copy should be light and funny, for example:
   `Nobody got this one. Football chose chaos.`

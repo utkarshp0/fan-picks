@@ -6,6 +6,7 @@ import { enrichTemplatesWithSportsData } from "../src/lib/sports-data-client";
 import { worldCup2026Template } from "../src/data/templates";
 import { filterRealSportsTeamNames } from "../src/lib/sports-team-utils";
 import {
+  fetchWorldCup26QualifiedTeams,
   normalizeWorldCup26Teams,
   withWorldCup26QualifiedTeams,
 } from "../src/lib/worldcup26-fallback";
@@ -124,10 +125,17 @@ describe("Big Balls Data sports sync", () => {
   it("normalizes WorldCup26 qualified teams from the dedicated teams endpoint", () => {
     const teams = normalizeWorldCup26Teams("fifa-world-cup-2026", [
       {
-        team_id: "37",
+        id: "37",
+        team_id: "legacy-37",
         name_en: "Argentina",
         fifa_code: "ARG",
         flag: "https://example.test/arg.png",
+      },
+      {
+        id: "16",
+        name_en: "Turkey",
+        fifa_code: "TUR",
+        flag: "https://example.test/tur.png",
       },
       {
         id: "placeholder",
@@ -150,6 +158,7 @@ describe("Big Balls Data sports sync", () => {
       [
         { name: "Argentina", providerTeamId: "37", shortName: "ARG" },
         { name: "France", providerTeamId: "12", shortName: "FRA" },
+        { name: "Turkey", providerTeamId: "16", shortName: "TUR" },
       ],
     );
   });
@@ -184,6 +193,39 @@ describe("Big Balls Data sports sync", () => {
     assert.equal(merged.tournament.teamCount, 2);
     assert.equal(merged.fixtures[0].homeTeamName, "Mexico");
     assert.equal(merged.fixtures[0].awayTeamName, "Group E Winner");
+  });
+
+  it("rejects WorldCup26 team sync results that are not exactly 48 teams", async () => {
+    const originalFetch = globalThis.fetch;
+    const originalTeamsUrl = process.env.WORLDCUP26_TEAMS_API_URL;
+
+    process.env.WORLDCUP26_TEAMS_API_URL = "https://example.test/teams";
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          teams: [{ id: "1", name_en: "Mexico", fifa_code: "MEX" }],
+        }),
+        { status: 200 },
+      );
+
+    try {
+      await assert.rejects(
+        () =>
+          fetchWorldCup26QualifiedTeams({
+            tournamentId: "fifa-world-cup-2026",
+            league: "wc2026",
+          }),
+        /expected 48/,
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+
+      if (originalTeamsUrl === undefined) {
+        delete process.env.WORLDCUP26_TEAMS_API_URL;
+      } else {
+        process.env.WORLDCUP26_TEAMS_API_URL = originalTeamsUrl;
+      }
+    }
   });
 
   it("injects synced team choices into team-based default bets", () => {

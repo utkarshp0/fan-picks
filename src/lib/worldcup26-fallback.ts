@@ -4,11 +4,14 @@ import { isPlaceholderSportsTeamName } from "@/lib/sports-team-utils";
 import type { SportsTeam } from "@/types/sports-data";
 
 type WorldCup26Team = {
+  _id?: string;
   id?: string | number;
   team_id?: string | number;
   name?: string;
   name_en?: string;
   fifa_code?: string;
+  iso2?: string;
+  groups?: string;
   flag_url?: string;
   flag?: string;
   logo?: string;
@@ -89,7 +92,15 @@ export async function fetchWorldCup26QualifiedTeams(
     return null;
   }
 
-  return normalizeWorldCup26Teams(config.tournamentId, teams);
+  const normalizedTeams = normalizeWorldCup26Teams(config.tournamentId, teams);
+
+  if (normalizedTeams.length !== 48) {
+    throw new Error(
+      `worldcup26 teams sync returned ${normalizedTeams.length} team(s), expected 48.`,
+    );
+  }
+
+  return normalizedTeams;
 }
 
 export function normalizeWorldCup26Teams(
@@ -105,9 +116,7 @@ export function normalizeWorldCup26Teams(
       continue;
     }
 
-    const providerTeamId = slugify(
-      String(team.team_id ?? team.id ?? team.fifa_code ?? name),
-    );
+    const providerTeamId = slugify(String(team.id ?? team.team_id ?? team.fifa_code ?? name));
 
     if (!providerTeamId) {
       continue;
@@ -118,7 +127,7 @@ export function normalizeWorldCup26Teams(
       tournamentId,
       providerTeamId,
       name,
-      shortName: team.fifa_code,
+      shortName: team.fifa_code ?? team.iso2,
       logoUrl: team.flag_url ?? team.flag ?? team.logo,
     });
   }

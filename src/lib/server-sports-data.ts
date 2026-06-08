@@ -106,6 +106,15 @@ export async function syncSportsDataSnapshot(
   }
 
   if (snapshot.teams.length > 0) {
+    const { error: deleteTeamError } = await supabase
+      .from("sports_teams")
+      .delete()
+      .eq("tournament_id", snapshot.tournament.id);
+
+    if (deleteTeamError) {
+      throw new Error(deleteTeamError.message);
+    }
+
     const { error: teamError } = await supabase
       .from("sports_teams")
       .upsert(snapshot.teams.map(mapSportsTeamToDb), { onConflict: "id" });

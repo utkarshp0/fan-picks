@@ -404,6 +404,14 @@ into saved picks. Large team-choice bets use the searchable card picker in
 `src/components/championship/prediction-board.tsx`, while the existing
 selection-count validation remains the authority for save and lock behavior.
 
+For FIFA World Cup 2026, pool team choices must come from the authoritative
+`worldcup26.ir/get/teams` endpoint. Fixture providers such as Big Balls Data can
+still power fixtures and live scores, but fixture team names must not populate
+the 48-team picker because they can include aliases such as `Turkey`/`Turkiye`
+or knockout placeholders. Sports sync replaces the tournament's `sports_teams`
+rows with the authoritative 48-team list so stale aliases do not survive old
+syncs.
+
 ## UI Interaction Pattern
 
 Async actions should use the shared `Button` loading API:
