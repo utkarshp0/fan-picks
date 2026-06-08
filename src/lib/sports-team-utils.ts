@@ -5,10 +5,31 @@ const placeholderTeamPatterns = [
   /^best\s+third/i,
 ];
 
+const canonicalTeamNames: Record<string, string> = {
+  "congo dr": "Democratic Republic of the Congo",
+  "dr congo": "Democratic Republic of the Congo",
+  "democratic republic of congo": "Democratic Republic of the Congo",
+  "democratic republic of the congo": "Democratic Republic of the Congo",
+  "ir iran": "Iran",
+  "ivory coast": "Cote d'Ivoire",
+  "cote d ivoire": "Cote d'Ivoire",
+  "cote divoire": "Cote d'Ivoire",
+  czechia: "Czech Republic",
+  turkiye: "Turkey",
+  "türkiye": "Turkey",
+};
+
 export function isPlaceholderSportsTeamName(value: string) {
   const normalized = normalizeTeamChoice(value);
 
   return placeholderTeamPatterns.some((pattern) => pattern.test(normalized));
+}
+
+export function canonicalizeSportsTeamName(value: string) {
+  const trimmed = value.replace(/\s+/g, " ").trim();
+  const key = normalizeTeamChoice(trimmed).toLowerCase();
+
+  return canonicalTeamNames[key] ?? trimmed;
 }
 
 export function filterRealSportsTeamNames(values: string[]) {
@@ -18,6 +39,7 @@ export function filterRealSportsTeamNames(values: string[]) {
     .map((value) => value.trim())
     .filter(Boolean)
     .filter((value) => !isPlaceholderSportsTeamName(value))
+    .map(canonicalizeSportsTeamName)
     .filter((value) => {
       const key = normalizeTeamChoice(value).toLowerCase();
 

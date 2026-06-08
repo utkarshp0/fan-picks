@@ -291,4 +291,25 @@ describe("Big Balls Data sports sync", () => {
       ["Argentina", "France"],
     );
   });
+
+  it("canonicalizes duplicate country aliases from existing pool bet choices", () => {
+    assert.deepEqual(
+      filterRealSportsTeamNames([
+        "IR Iran",
+        "Iran",
+        "Czechia",
+        "Czech Republic",
+        "DR Congo",
+        "Congo DR",
+        "Turkiye",
+        "Turkey",
+      ]),
+      [
+        "Iran",
+        "Czech Republic",
+        "Democratic Republic of the Congo",
+        "Turkey",
+      ],
+    );
+  });
 });
